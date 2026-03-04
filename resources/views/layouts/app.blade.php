@@ -6,19 +6,16 @@
     <title>@yield('title', 'SIMAH') - Sistem Izin Mahasiswa</title>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
     <style>
         :root {
-            /* Warna Awal Anda yang Ditingkatkan */
             --navy-dark: #0D1B2A;
             --navy-medium: #1B263B;
             --navy-light: #415A77;
             --accent-blue: #647ACB;
-            --body-bg: #F0F2F5; /* Abu-abu sangat muda agar konten menonjol */
+            --body-bg: #F0F2F5;
         }
 
         body {
@@ -28,14 +25,13 @@
             overflow-x: hidden;
         }
 
-        /* ================= SIDEBAR (Perbaikan Spasi & Gaya) ================= */
+        /* ================= SIDEBAR ================= */
         .sidebar {
             position: fixed;
             top: 0;
             left: 0;
-            width: 260px; /* Sedikit lebih lebar agar lega */
+            width: 260px;
             height: 100vh;
-            /* Gradien Navy Awal Anda */
             background: linear-gradient(180deg, var(--navy-dark) 0%, var(--navy-medium) 100%);
             padding: 30px 20px;
             z-index: 1050;
@@ -65,7 +61,7 @@
             letter-spacing: 1px;
             font-weight: 600;
             color: var(--navy-light);
-            margin: 25px 10px 10px;
+            margin: 20px 10px 10px;
         }
 
         .sidebar nav a {
@@ -73,7 +69,7 @@
             align-items: center;
             gap: 12px;
             padding: 12px 16px;
-            color: #B0C4DE; /* Warna teks muted yang elegan */
+            color: #B0C4DE;
             font-weight: 500;
             text-decoration: none;
             border-radius: 12px;
@@ -88,7 +84,6 @@
             color: #FFFFFF;
         }
 
-        /* Gaya Aktif dengan Gradien Aksen */
         .sidebar nav a.active {
             background: linear-gradient(90deg, var(--accent-blue), var(--navy-light));
             color: #FFFFFF;
@@ -104,7 +99,7 @@
             border-top: 1px solid rgba(255,255,255,0.05);
         }
 
-        /* ================= TOPBAR (Lebih Bersih & Profesional) ================= */
+        /* ================= TOPBAR ================= */
         .topbar {
             margin-left: 260px;
             height: 75px;
@@ -123,12 +118,6 @@
             color: var(--navy-dark);
             font-weight: 600;
             font-size: 1rem;
-        }
-
-        .topbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
         }
 
         .logout-btn {
@@ -154,11 +143,10 @@
         /* ================= CONTENT AREA ================= */
         .content {
             margin-left: 260px;
-            padding: 110px 35px 35px; /* Padding atas disesuaikan topbar */
+            padding: 110px 35px 35px;
             min-height: 100vh;
         }
 
-        /* Card Konten Utama */
         .card-content {
             background: #ffffff;
             border-radius: 20px;
@@ -167,12 +155,10 @@
             box-shadow: 0 10px 30px rgba(0,0,0,0.03);
         }
 
-        /* ================= RESPONSIVE ================= */
         @media (max-width: 992px) {
             .sidebar { left: -260px; transition: 0.3s; }
             .sidebar.show { left: 0; }
-            .topbar, .content { margin-left: 0; padding-left: 20px; padding-right: 20px; }
-            .topbar { width: 100%; }
+            .topbar, .content { margin-left: 0; }
         }
     </style>
     @stack('styles')
@@ -180,7 +166,6 @@
 
 <body>
 
-{{-- SIDEBAR --}}
 <div class="sidebar" id="sidebar">
     <div>
         <div class="sidebar-brand">
@@ -191,25 +176,36 @@
             @auth
                 <div class="nav-label">Menu Utama</div>
 
+                {{-- DASHBOARD BERDASARKAN ROLE --}}
                 @if(Auth::user()->role == 'mahasiswa')
                     <a href="{{ route('mahasiswa.surat_izin.index') }}" class="{{ request()->is('mahasiswa*') ? 'active' : '' }}">
                         <i class="fas fa-columns"></i> Dashboard
                     </a>
-                @endif
-
-                @if(Auth::user()->role == 'admin')
+                @elseif(Auth::user()->role == 'admin')
                     <a href="{{ route('admin.surat_izin.index') }}" class="{{ request()->is('admin/surat-izin*') ? 'active' : '' }}">
                         <i class="fas fa-chart-line"></i> Dashboard Admin
                     </a>
+                @elseif(Auth::user()->role == 'dosen')
+                    <a href="{{ route('dosen.dashboard') }}" class="{{ request()->is('dosen/dashboard*') ? 'active' : '' }}">
+                        <i class="fas fa-chalkboard-user"></i> Dashboard Dosen
+                    </a>
+                @endif
+
+                {{-- MENU JADWAL KULIAH (BARU) --}}
+                <div class="nav-label">Akademik</div>
+                <a href="{{ route('jadwal.index') }}" class="{{ request()->is('jadwal*') ? 'active' : '' }}">
+                    <i class="fas fa-calendar-alt"></i> Jadwal Kuliah
+                </a>
+
+                {{-- FITUR KHUSUS ADMIN --}}
+                @if(Auth::user()->role == 'admin')
                     <a href="{{ route('admin.users.index') }}" class="{{ request()->is('admin/users*') ? 'active' : '' }}">
                         <i class="fas fa-user-gear"></i> Manajemen User
                     </a>
                 @endif
 
+                {{-- FITUR KHUSUS DOSEN --}}
                 @if(Auth::user()->role == 'dosen')
-                    <a href="{{ route('dosen.dashboard') }}" class="{{ request()->is('dosen/dashboard*') ? 'active' : '' }}">
-                        <i class="fas fa-chalkboard-user"></i> Dashboard Dosen
-                    </a>
                     <div class="nav-label">Monitoring Absensi</div>
                     @foreach(['MI 3A', 'MI 3B', 'MI 3C'] as $kelas)
                         <a href="{{ route('dosen.absensi', $kelas) }}" class="{{ request()->is('dosen/absensi/'.$kelas) ? 'active' : '' }}">
@@ -233,7 +229,6 @@
     </div>
 </div>
 
-{{-- TOPBAR --}}
 @auth
 <div class="topbar">
     <div class="d-flex align-items-center gap-3">
@@ -243,6 +238,9 @@
         <div class="user-greeting">
             <span class="d-none d-sm-inline text-muted fw-normal">Selamat datang,</span>
             {{ Auth::user()->name }}
+            @if(Auth::user()->role == 'mahasiswa')
+                <span class="badge bg-primary-subtle text-primary x-small ms-1">{{ Auth::user()->kelas }}</span>
+            @endif
         </div>
     </div>
 
@@ -261,7 +259,6 @@
 </div>
 @endauth
 
-{{-- CONTENT AREA --}}
 <div class="content {{ !Auth::check() ? 'm-0 p-0' : '' }}">
     <div class="card-content">
         @yield('content')
@@ -269,13 +266,14 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 <script>
-    document.getElementById('sidebarToggle').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.toggle('show');
-    });
+    const toggleBtn = document.getElementById('sidebarToggle');
+    if(toggleBtn) {
+        toggleBtn.addEventListener('click', function() {
+            document.getElementById('sidebar').classList.toggle('show');
+        });
+    }
 </script>
-
 @stack('scripts')
 </body>
 </html>

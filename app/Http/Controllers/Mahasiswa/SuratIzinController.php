@@ -4,96 +4,79 @@ namespace App\Http\Controllers\Mahasiswa;
 
 use App\Http\Controllers\Controller;
 use App\Models\SuratIzin;
+use App\Models\Jadwal; // Pastikan Model Jadwal sudah dibuat
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
+use Carbon\Carbon;
 
 class SuratIzinController extends Controller
 {
-    // Tampilkan daftar surat izin mahasiswa
+    /**
+     * Menampilkan Dashboard Mahasiswa
+     */
     public function index()
     {
-        $suratIzins = SuratIzin::where('user_id', Auth::id())->latest()->get();
-        return view('mahasiswa.surat_izin.index', compact('suratIzins'));
+        // 1. Mengambil data surat izin milik mahasiswa yang sedang login
+        $suratIzins = SuratIzin::where('user_id', Auth::id())
+                                ->latest()
+                                ->get();
+
+        // 2. Logika Jadwal Kuliah Hari Ini
+        // Set locale ke Indonesia agar format hari menjadi "Senin", "Selasa", dsb.
+        Carbon::setLocale('id');
+        $hariIni = Carbon::now()->translatedFormat('l');
+
+        // Ambil jadwal berdasarkan kelas mahasiswa dan hari ini
+        $jadwalHariIni = Jadwal::where('kelas', Auth::user()->kelas)
+                                ->where('hari', $hariIni)
+                                ->orderBy('jam_mulai', 'asc')
+                                ->get();
+
+        // 3. Mengirimkan semua data ke view index mahasiswa
+        return view('mahasiswa.surat_izin.index', compact('suratIzins', 'jadwalHariIni'));
     }
 
+    /**
+     * Halaman form buat surat izin
+     */
     public function create()
     {
         return view('mahasiswa.surat_izin.create');
     }
 
+    /**
+     * Menyimpan data surat izin baru
+     */
     public function store(Request $request)
     {
         $request->validate([
-            'jenis_izin' => 'required|in:sakit,izin',
+            'jenis_izin' => 'required',
             'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'alasan' => 'required|string',
-            'bukti_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'tanggal_selesai' => 'required|date',
+            'alasan' => 'required',
+            'bukti_file' => 'nullable|mimes:pdf,jpg,jpeg,png|max:2048',
         ]);
 
-        $buktiPath = null;
+        $data = $request->all();
+        $data['user_id'] = Auth::id();
+        $data['status'] = 'menunggu'; // Status default saat baru buat
+
         if ($request->hasFile('bukti_file')) {
-            $buktiPath = $request->file('bukti_file')->store('bukti', 'public');
+            $data['bukti_file'] = $request->file('bukti_file')->store('bukti_izin', 'public');
         }
 
-        SuratIzin::create([
-            'user_id' => Auth::id(),
-            'jenis_izin' => $request->jenis_izin,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_selesai' => $request->tanggal_selesai,
-            'alasan' => $request->alasan,
-            'bukti_file' => $buktiPath,
-        ]);
+        SuratIzin::create($data);
 
-        return redirect('/mahasiswa/surat-izin')->with('success', 'Surat izin berhasil dibuat!');
+        return redirect()->route('mahasiswa.surat_izin.index')
+                         ->with('success', 'Surat izin berhasil diajukan.');
     }
 
+    /**
+     * Menampilkan detail surat atau form edit jika diperlukan
+     */
     public function edit($id)
     {
         $suratIzin = SuratIzin::where('user_id', Auth::id())->findOrFail($id);
         return view('mahasiswa.surat_izin.edit', compact('suratIzin'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $suratIzin = SuratIzin::where('user_id', Auth::id())->findOrFail($id);
-
-        $request->validate([
-            'jenis_izin' => 'required|in:sakit,izin',
-            'tanggal_mulai' => 'required|date',
-            'tanggal_selesai' => 'required|date|after_or_equal:tanggal_mulai',
-            'alasan' => 'required|string',
-            'bukti_file' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
-        ]);
-
-        if ($request->hasFile('bukti_file')) {
-            if ($suratIzin->bukti_file) {
-                Storage::disk('public')->delete($suratIzin->bukti_file);
-            }
-            $suratIzin->bukti_file = $request->file('bukti_file')->store('bukti', 'public');
-        }
-
-        $suratIzin->update([
-            'jenis_izin' => $request->jenis_izin,
-            'tanggal_mulai' => $request->tanggal_mulai,
-            'tanggal_selesai' => $request->tanggal_selesai,
-            'alasan' => $request->alasan,
-        ]);
-
-        return redirect('/mahasiswa/surat-izin')->with('success', 'Surat izin berhasil diperbarui!');
-    }
-
-    public function destroy($id)
-    {
-        $suratIzin = SuratIzin::where('user_id', Auth::id())->findOrFail($id);
-
-        if ($suratIzin->bukti_file) {
-            Storage::disk('public')->delete($suratIzin->bukti_file);
-        }
-
-        $suratIzin->delete();
-
-        return redirect('/mahasiswa/surat-izin')->with('success', 'Surat izin berhasil dihapus!');
     }
 }

@@ -1,172 +1,83 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers; // <--- Cek apakah ini sama dengan di Route
 
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Absensi;
+use App\Models\Jadwal;
 use App\Models\SuratIzin;
-use App\Models\Mahasiswa;
+use Illuminate\Support\Facades\Auth;
 
-class DashboardDosenController extends Controller
+class DashboardDosenController extends Controller // <--- Nama Class harus sama dengan Nama File
 {
-    /**
-     * Dashboard utama dosen
-     * Menampilkan semua surat izin, dengan filter kelas opsional
-     */
-    public function index(Request $request)
+    public function index()
 {
-    $kelas = $request->query('kelas');
+    $user = Auth::user();
 
-    // Ambil surat izin beserta user
-    $query = SuratIzin::with('user')->orderBy('tanggal_mulai', 'desc');
+    // 1. Ambil nama dosen dan bersihkan spasi
+    $userName = trim($user->name);
 
-    if ($kelas) {
-        $query->whereHas('user', function ($q) use ($kelas) {
-            $q->where('kelas', $kelas);
-        });
+    // 2. Cari kelas yang diajar oleh dosen ini di tabel Jadwal
+    // Gunakan LIKE untuk mengantisipasi jika satu jadwal ditulis lebih dari satu dosen
+    $daftarKelasDiajar = Jadwal::where('dosen_pengajar', 'LIKE', "%{$userName}%")
+        ->pluck('kelas')
+        ->unique()
+        ->toArray();
+
+    // 3. Ambil data Surat Izin hanya untuk mahasiswa yang ada di kelas tersebut
+    if (!empty($daftarKelasDiajar)) {
+        $suratIzin = SuratIzin::with('user')
+            ->whereHas('user', function ($query) use ($daftarKelasDiajar) {
+                $query->whereIn('kelas', $daftarKelasDiajar);
+            })
+            ->get();
+    } else {
+        // Jika dosen tidak punya jadwal, kirim koleksi kosong agar tidak error
+        $suratIzin = collect();
     }
 
-    $suratIzin = $query->get();
+    // 4. Ambil Jadwal untuk ditampilkan di kalender dashboard
+    $jadwals = Jadwal::where('dosen_pengajar', 'LIKE', "%{$userName}%")
+        ->orderBy('jam_mulai', 'asc')
+        ->get()
+        ->groupBy('hari');
 
-    return view('dosen.dashboard', compact('suratIzin', 'kelas'));
+    return view('dosen.dashboard', compact('jadwals', 'suratIzin'));
 }
-    /**
-     * Daftar absensi
-     * Bisa filter per kelas jika query kelas dikirim
-     */
-    public function absen(Request $request)
-    {
-        $kelas = $request->query('kelas');
-
-        $query = Absensi::orderBy('tanggal','desc');
-
-        if ($kelas) {
-            $query->where('kelas', $kelas);
-        }
-
-        $absensi = $query->get();
-
-        return view('dosen.absensi', compact('absensi','kelas'));
-    }
-
-    /**
-     * Form input absensi manual
-     */
-    public function createAbsen()
-    {
-        $mahasiswa = Mahasiswa::orderBy('nama')->get();
-        return view('dosen.create_absen', compact('mahasiswa'));
-    }
-
-    /**
-     * Simpan absensi manual
-     */
-    public function storeAbsen(Request $request)
-    {
-        $request->validate([
-            'nama_mahasiswa.*' => 'required|string|max:255',
-            'nim_mahasiswa.*' => 'required|string|max:255',
-            'kelas' => 'required|string',
-            'status.*' => 'required|in:Hadir,Izin,Sakit,Alfa',
-        ]);
-
-        $dosen_id = Auth::id();
-
-        foreach ($request->nama_mahasiswa as $index => $nama) {
-            Absensi::create([
-                'nama_mahasiswa' => $nama,
-                'nim_mahasiswa' => $request->nim_mahasiswa[$index],
-                'kelas' => $request->kelas,
-                'dosen_id' => $dosen_id,
-                'status' => $request->status[$index],
-                'tanggal' => now(),
-            ]);
-        }
-
-        return redirect()->route('dosen.absensi')->with('success', 'Absensi berhasil ditambahkan!');
-    }
-
-    /**
-     * Form edit absensi
-     */
-    public function editAbsen($id)
-    {
-        $absen = Absensi::findOrFail($id);
-        $statusOptions = ['Hadir','Izin','Sakit','Alfa'];
-        return view('dosen.edit_absen', compact('absen','statusOptions'));
-    }
-
-    /**
-     * Update absensi
-     */
-    public function updateAbsen(Request $request, $id)
-    {
-        $request->validate([
-            'nama_mahasiswa' => 'required|string|max:255',
-            'nim_mahasiswa' => 'required|string|max:255',
-            'status' => 'required|in:Hadir,Izin,Sakit,Alfa',
-        ]);
-
-        $absen = Absensi::findOrFail($id);
-        $absen->update([
-            'nama_mahasiswa' => $request->nama_mahasiswa,
-            'nim_mahasiswa' => $request->nim_mahasiswa,
-            'status' => $request->status,
-        ]);
-
-        return redirect()->route('dosen.absensi')->with('success','Absen berhasil diupdate!');
-    }
-
-    /**
-     * Hapus absensi
-     */
-    public function hapusAbsen($id)
-    {
-        Absensi::findOrFail($id)->delete();
-        return redirect()->route('dosen.absensi')->with('success','Absen berhasil dihapus!');
-    }
-
-    /**
-     * Daftar surat izin
-     */
-    public function surat()
-    {
-        $suratIzin = SuratIzin::latest()->get();
-        return view('dosen.surat', compact('suratIzin'));
-    }
-
-    /**
-     * Hapus surat izin
-     */
-    public function hapusSurat($id)
-    {
-        SuratIzin::findOrFail($id)->delete();
-        return redirect()->route('dosen.dashboard')->with('success','Surat izin berhasil dihapus!');
-    }
-
-    /**
-     * Lihat detail surat izin
-     */
     public function suratDetail($id)
     {
-        $surat = SuratIzin::findOrFail($id);
+        $surat = SuratIzin::with('user')->findOrFail($id);
         return view('dosen.surat_detail', compact('surat'));
     }
 
-    /**
-     * Verifikasi surat izin
-     */
-    public function suratVerifikasi(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:Disetujui,Ditolak'
+    public function verifikasi(Request $request, $id)
+{
+    // Cari data surat
+    $surat = SuratIzin::find($id);
+
+    if (!$surat) {
+        return response()->json(['success' => false, 'message' => 'Data tidak ditemukan']);
+    }
+
+    // Ambil status dari request (sudah huruf kecil dari JS)
+    $surat->status = $request->status;
+
+    // Opsional: Jika ingin menambahkan catatan dosen bisa di sini
+    // $surat->catatan_dosen = $request->catatan;
+
+    if ($surat->save()) {
+        return response()->json([
+            'success' => true,
+            'message' => 'Status berhasil diperbarui'
         ]);
+    }
 
+    return response()->json(['success' => false, 'message' => 'Gagal menyimpan data']);
+}
+
+    public function hapusSurat($id) // <--- Sesuaikan nama method dengan Route
+    {
         $surat = SuratIzin::findOrFail($id);
-        $surat->status = $request->status;
-        $surat->save();
-
-        return redirect()->route('dosen.dashboard')->with('success', 'Surat berhasil diperbarui!');
+        $surat->delete();
+        return redirect()->back()->with('success', 'Data berhasil dihapus.');
     }
 }

@@ -29,7 +29,7 @@
                         <th class="text-muted small fw-bold">NAMA LENGKAP</th>
                         <th class="text-muted small fw-bold">EMAIL</th>
                         <th class="text-muted small fw-bold">ROLE</th>
-                        <th class="text-muted small fw-bold text-center pe-4" style="width:100px;">STATUS</th>
+                        {{-- Kolom status di sini sudah dihapus --}}
                     </tr>
                 </thead>
                 <tbody>
@@ -53,13 +53,11 @@
                                 {{ strtoupper($user->role) }}
                             </span>
                         </td>
-                        <td class="text-center pe-4">
-                            <span class="text-success small"><i class="fas fa-circle me-1" style="font-size: 0.5rem;"></i> Aktif</span>
-                        </td>
+                        {{-- Bagian <td> status aktif di sini sudah dihapus --}}
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted fst-italic">
+                        <td colspan="4" class="text-center py-5 text-muted fst-italic">
                             <i class="fas fa-users-slash fa-3x mb-3 opacity-25"></i>
                             <p class="mb-0">Belum ada user yang terdaftar.</p>
                         </td>

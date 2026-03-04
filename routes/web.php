@@ -9,10 +9,11 @@ use App\Http\Controllers\Mahasiswa\SuratIzinController as MahasiswaSurat;
 use App\Http\Controllers\DashboardDosenController;
 use App\Http\Controllers\AbsensiController;
 use App\Http\Middleware\RoleMiddleware;
+use App\Http\Controllers\Mahasiswa\JadwalController;
 
 /*
 |--------------------------------------------------------------------------
-| AUTH ROUTES
+| AUTH & PROFILE ROUTES
 |--------------------------------------------------------------------------
 */
 Route::get('/', [AuthController::class, 'loginForm'])->name('login');
@@ -22,14 +23,12 @@ Route::get('/register', [AuthController::class, 'registerForm'])->name('register
 Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-/*
-|--------------------------------------------------------------------------
-| PROFILE ROUTES (SEMUA USER LOGIN)
-|--------------------------------------------------------------------------
-*/
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
+    // Jadwal dipindahkan ke sini agar Mahasiswa, Admin, & Dosen bisa akses halaman yang sama
+    Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
 });
 
 /*
@@ -52,12 +51,10 @@ Route::prefix('mahasiswa')->middleware(['auth', RoleMiddleware::class . ':mahasi
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->group(function () {
-    // Surat Izin
     Route::get('/surat-izin', [AdminSurat::class, 'index'])->name('admin.surat_izin.index');
     Route::get('/surat-izin/{id}', [AdminSurat::class, 'show'])->name('admin.surat_izin.show');
     Route::put('/surat-izin/{id}/verifikasi', [AdminSurat::class, 'verifikasi'])->name('admin.surat_izin.verifikasi');
 
-    // Manajemen User
     Route::get('/users', [AdminUserController::class, 'index'])->name('admin.users.index');
     Route::get('/users/create', [AdminUserController::class, 'create'])->name('admin.users.create');
     Route::post('/users', [AdminUserController::class, 'store'])->name('admin.users.store');
@@ -65,6 +62,9 @@ Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->
     Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
     Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
     Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+
+    Route::post('/jadwal/store', [JadwalController::class, 'store'])->name('jadwal.store');
+    Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
 });
 
 /*
@@ -74,49 +74,23 @@ Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->
 */
 Route::prefix('dosen')->middleware(['auth', RoleMiddleware::class . ':dosen'])->group(function () {
 
-    // Dashboard
+    // Dashboard Dosen (Pastikan rute ini masuk dalam prefix 'dosen' dan role 'dosen')
     Route::get('/dashboard', [DashboardDosenController::class, 'index'])->name('dosen.dashboard');
 
-    /*
-    |--------------------------------------------------------------------------
-    | ABSENSI PER KELAS
-    |--------------------------------------------------------------------------
-    | Support MI 3A, MI 3B, MI 3C
-    */
+    // Surat Izin Management
+    Route::get('/surat/detail/{id}', [DashboardDosenController::class, 'suratDetail'])->name('dosen.surat_detail');
+    Route::post('/surat/verifikasi/{id}', [DashboardDosenController::class, 'verifikasi'])->name('dosen.verifikasi');    Route::delete('/surat/delete/{id}', [DashboardDosenController::class, 'hapusSurat'])->name('dosen.surat_hapus');
 
-    // Rekap absensi per kelas
+    // Absensi Management
     Route::get('/absensi/{kelas}', [AbsensiController::class, 'index'])->name('dosen.absensi');
-
-    // Form tambah absensi
     Route::get('/absensi/create/{kelas}', [AbsensiController::class, 'create'])->name('dosen.createAbsen');
-
-    // Simpan absensi
     Route::post('/absensi/store', [AbsensiController::class, 'store'])->name('dosen.storeAbsen');
-
-    // Edit absensi
     Route::get('/absensi/edit/{id}', [AbsensiController::class, 'edit'])->name('dosen.editAbsen');
-
-    // Update absensi
     Route::put('/absensi/update/{id}', [AbsensiController::class, 'update'])->name('dosen.updateAbsen');
-
-    // Hapus absensi
     Route::delete('/absensi/delete/{id}', [AbsensiController::class, 'destroy'])->name('dosen.hapusAbsen');
 
-    /*
-    |--------------------------------------------------------------------------
-    | SURAT IZIN (DOSEN)
-    |--------------------------------------------------------------------------
-    */
-    Route::get('/surat/detail/{id}', [DashboardDosenController::class, 'suratDetail'])->name('dosen.surat_detail');
-    Route::delete('/surat/delete/{id}', [DashboardDosenController::class, 'hapusSurat'])->name('dosen.surat_hapus');
-    Route::post('/surat/verifikasi/{id}', [DashboardDosenController::class, 'suratVerifikasi'])->name('dosen.surat_verifikasi');
-
-    /*
-    |--------------------------------------------------------------------------
-    | OPTIONAL: Redirect route 'dosen.absen' lama ke MI 3A
-    |--------------------------------------------------------------------------
-    */
+    // Redirect Shortcut (opsional)
     Route::get('/absen', function () {
         return redirect()->route('dosen.absensi', ['kelas' => 'MI 3A']);
-    })->name('dosen.absen'); // ini supaya tombol lama tetap jalan
+    })->name('dosen.absen');
 });
