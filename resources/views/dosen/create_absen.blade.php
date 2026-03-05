@@ -13,15 +13,28 @@
     </a>
 </div>
 
-@if(session('success'))
-    <div class="alert alert-success border-0 shadow-sm rounded-3 mb-4">
-        <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
+{{-- Menampilkan Error Validasi jika ada --}}
+@if ($errors->any())
+    <div class="alert alert-danger border-0 shadow-sm rounded-3 mb-4">
+        <ul class="mb-0">
+            @foreach ($errors->all() as $error)
+                <li>{{ $error }}</li>
+            @endforeach
+        </ul>
     </div>
 @endif
 
 <form action="{{ route('dosen.storeAbsen') }}" method="POST">
     @csrf
     <input type="hidden" name="kelas" value="{{ $kelas }}">
+
+    {{-- INPUT TANGGAL (WAJIB ADA karena di Controller di-validate 'required') --}}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted">Tanggal Absensi</label>
+            <input type="date" name="tanggal" class="form-control border-0 bg-light rounded-3 shadow-sm" value="{{ date('Y-m-d') }}" required>
+        </div>
+    </div>
 
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
         <div class="card-body p-0">
@@ -37,11 +50,14 @@
                         </tr>
                     </thead>
                     <tbody id="absenBody">
+                        {{-- Row Default Pertama --}}
                         <tr class="border-bottom">
                             <td class="ps-4">
-                                <input type="number" name="no[]" class="form-control form-control-sm bg-light border-0 text-center rounded-3" value="1" required>
+                                <input type="number" name="no[]" class="form-control form-control-sm bg-light border-0 text-center rounded-3" value="1" readonly>
                             </td>
                             <td>
+                                {{-- Tambahkan mahasiswa_id hidden (kosongkan untuk input manual) --}}
+                                <input type="hidden" name="mahasiswa_id[]" value="0">
                                 <input type="text" name="nama_mahasiswa[]" class="form-control form-control-sm border-0 bg-light rounded-3" placeholder="Masukkan Nama..." required>
                             </td>
                             <td>
@@ -78,7 +94,6 @@
 </form>
 
 <style>
-    /* Navy Gradient Styling */
     .btn-navy-grad {
         background: linear-gradient(90deg, #0D1B2A 0%, #1B263B 100%);
         color: white; border: none; transition: 0.3s;
@@ -87,14 +102,15 @@
         background: #415A77; color: white; transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(13, 27, 42, 0.2);
     }
-
-    /* Input Styling */
     .form-control:focus, .form-select:focus {
         background-color: #fff !important;
         border: 1px solid #647ACB !important;
         box-shadow: 0 0 0 4px rgba(100, 122, 203, 0.1);
     }
     .text-navy { color: #0D1B2A; }
+    .animated { animation-duration: 0.3s; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .fadeIn { animation-name: fadeIn; }
 </style>
 
 <script>
@@ -103,9 +119,10 @@ document.getElementById('tambahBaris').addEventListener('click', function(){
     let rowCount = tbody.rows.length + 1;
     let row = `<tr class="border-bottom animated fadeIn">
         <td class="ps-4">
-            <input type="number" name="no[]" class="form-control form-control-sm bg-light border-0 text-center rounded-3" value="${rowCount}" required>
+            <input type="number" name="no[]" class="form-control form-control-sm bg-light border-0 text-center rounded-3" value="${rowCount}" readonly>
         </td>
         <td>
+            <input type="hidden" name="mahasiswa_id[]" value="0">
             <input type="text" name="nama_mahasiswa[]" class="form-control form-control-sm border-0 bg-light rounded-3" placeholder="Masukkan Nama..." required>
         </td>
         <td>
@@ -128,10 +145,14 @@ document.getElementById('tambahBaris').addEventListener('click', function(){
     tbody.insertAdjacentHTML('beforeend', row);
 });
 
-// Fitur Hapus Baris yang baru ditambah
 document.getElementById('absenBody').addEventListener('click', function(e){
     if(e.target.closest('.remove-row')){
         e.target.closest('tr').remove();
+        // Update penomoran jika baris dihapus
+        let rows = document.querySelectorAll('#absenBody tr');
+        rows.forEach((row, index) => {
+            row.querySelector('input[name="no[]"]').value = index + 1;
+        });
     }
 });
 </script>

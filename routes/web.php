@@ -10,6 +10,7 @@ use App\Http\Controllers\DashboardDosenController;
 use App\Http\Controllers\AbsensiController;
 use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Mahasiswa\JadwalController;
+use App\Http\Controllers\PengumumanController;
 
 /*
 |--------------------------------------------------------------------------
@@ -26,9 +27,11 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
     Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
-
-    // Jadwal dipindahkan ke sini agar Mahasiswa, Admin, & Dosen bisa akses halaman yang sama
     Route::get('/jadwal', [JadwalController::class, 'index'])->name('jadwal.index');
+
+    // PERBAIKAN: Semua Role yang login bisa melihat Pengumuman
+    Route::get('/pengumuman', [PengumumanController::class, 'index'])->name('pengumuman.index');
+    Route::get('/pengumuman/{id}', [PengumumanController::class, 'show'])->name('pengumuman.show');
 });
 
 /*
@@ -50,19 +53,23 @@ Route::prefix('mahasiswa')->middleware(['auth', RoleMiddleware::class . ':mahasi
 | ADMIN ROUTES
 |--------------------------------------------------------------------------
 */
-Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->group(function () {
-    Route::get('/surat-izin', [AdminSurat::class, 'index'])->name('admin.surat_izin.index');
-    Route::get('/surat-izin/{id}', [AdminSurat::class, 'show'])->name('admin.surat_izin.show');
-    Route::put('/surat-izin/{id}/verifikasi', [AdminSurat::class, 'verifikasi'])->name('admin.surat_izin.verifikasi');
+Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->name('admin.')->group(function () {
 
-    Route::get('/users', [AdminUserController::class, 'index'])->name('admin.users.index');
-    Route::get('/users/create', [AdminUserController::class, 'create'])->name('admin.users.create');
-    Route::post('/users', [AdminUserController::class, 'store'])->name('admin.users.store');
-    Route::get('/users/{user}', [AdminUserController::class, 'show'])->name('admin.users.show');
-    Route::get('/users/{user}/edit', [AdminUserController::class, 'edit'])->name('admin.users.edit');
-    Route::put('/users/{user}', [AdminUserController::class, 'update'])->name('admin.users.update');
-    Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('admin.users.destroy');
+    Route::get('/dashboard', [AdminSurat::class, 'index'])->name('dashboard');
 
+    // User Management
+    Route::resource('users', AdminUserController::class);
+
+    // Pengumuman Management (Hanya Create, Edit, Delete untuk Admin)
+    Route::resource('pengumuman', PengumumanController::class)->except(['index', 'show']);
+    Route::post('/quick-broadcast', [AdminSurat::class, 'storePengumuman'])->name('pengumuman.quick-store');
+
+    // Surat Izin Management (Admin)
+    Route::get('/surat-izin', [AdminSurat::class, 'index'])->name('surat_izin.index');
+    Route::get('/surat-izin/{id}', [AdminSurat::class, 'show'])->name('surat_izin.show');
+    Route::put('/surat-izin/{id}/verifikasi', [AdminSurat::class, 'verifikasi'])->name('surat_izin.verifikasi');
+
+    // Jadwal Management
     Route::post('/jadwal/store', [JadwalController::class, 'store'])->name('jadwal.store');
     Route::delete('/jadwal/{id}', [JadwalController::class, 'destroy'])->name('jadwal.destroy');
 });
@@ -74,22 +81,22 @@ Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->
 */
 Route::prefix('dosen')->middleware(['auth', RoleMiddleware::class . ':dosen'])->group(function () {
 
-    // Dashboard Dosen (Pastikan rute ini masuk dalam prefix 'dosen' dan role 'dosen')
+    // Dashboard Dosen
     Route::get('/dashboard', [DashboardDosenController::class, 'index'])->name('dosen.dashboard');
 
-    // Surat Izin Management
-    Route::get('/surat/detail/{id}', [DashboardDosenController::class, 'suratDetail'])->name('dosen.surat_detail');
-    Route::post('/surat/verifikasi/{id}', [DashboardDosenController::class, 'verifikasi'])->name('dosen.verifikasi');    Route::delete('/surat/delete/{id}', [DashboardDosenController::class, 'hapusSurat'])->name('dosen.surat_hapus');
+    // Surat Izin Management (Dosen)
+    Route::get('/surat-izin/{id}', [DashboardDosenController::class, 'suratDetail'])->name('dosen.suratDetail');
+    Route::post('/surat-izin/{id}/setujui', [DashboardDosenController::class, 'setujuiSurat'])->name('dosen.setujuiSurat');
+    Route::post('/surat/{id}/tolak', [DashboardDosenController::class, 'tolakSurat'])->name('dosen.tolakSurat');
 
     // Absensi Management
-    Route::get('/absensi/{kelas}', [AbsensiController::class, 'index'])->name('dosen.absensi');
-    Route::get('/absensi/create/{kelas}', [AbsensiController::class, 'create'])->name('dosen.createAbsen');
-    Route::post('/absensi/store', [AbsensiController::class, 'store'])->name('dosen.storeAbsen');
-    Route::get('/absensi/edit/{id}', [AbsensiController::class, 'edit'])->name('dosen.editAbsen');
-    Route::put('/absensi/update/{id}', [AbsensiController::class, 'update'])->name('dosen.updateAbsen');
-    Route::delete('/absensi/delete/{id}', [AbsensiController::class, 'destroy'])->name('dosen.hapusAbsen');
-
-    // Redirect Shortcut (opsional)
+    Route::get('/absensi/rekap/{kelas}', [DashboardDosenController::class, 'absensiByKelas'])->name('dosen.absensi');
+    Route::get('/absensi/create/{kelas}', [DashboardDosenController::class, 'createAbsen'])->name('dosen.createAbsen');
+    Route::post('/absensi/store', [DashboardDosenController::class, 'storeAbsen'])->name('dosen.storeAbsen');
+    Route::get('/absensi/edit/{id}', [DashboardDosenController::class, 'editAbsen'])->name('dosen.editAbsen');
+    Route::put('/absensi/update/{id}', [DashboardDosenController::class, 'updateAbsen'])->name('dosen.updateAbsen');
+Route::delete('/dosen/absensi/delete/{id}', [DashboardDosenController::class, 'destroyAbsen'])->name('dosen.destroyAbsen');
+    // Shortcut
     Route::get('/absen', function () {
         return redirect()->route('dosen.absensi', ['kelas' => 'MI 3A']);
     })->name('dosen.absen');

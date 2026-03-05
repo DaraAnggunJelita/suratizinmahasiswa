@@ -20,7 +20,48 @@
         </a>
     </div>
 
-    {{-- FITUR TAMBAHAN 1: SMART ATTENDANCE ALERT --}}
+    {{-- ================= FITUR PENGUMUMAN (BARU) ================= --}}
+    @php
+        $pengumumans = \App\Models\Pengumuman::whereIn('kelas', [Auth::user()->kelas, 'Semua'])
+                        ->latest()
+                        ->take(3)
+                        ->get();
+    @endphp
+
+    @if($pengumumans->count() > 0)
+    <div class="mb-4">
+        <div class="d-flex align-items-center mb-3">
+            <h6 class="fw-bold text-dark mb-0 text-uppercase small"><i class="fas fa-bullhorn me-2 text-primary"></i> Pengumuman Terbaru</h6>
+            <div class="flex-grow-1 ms-3"><hr class="my-0 opacity-25"></div>
+        </div>
+
+        <div class="row g-3">
+            @foreach($pengumumans as $info)
+            <div class="col-md-4">
+                <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden border-start border-primary border-4">
+                    <div class="card-body p-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-primary-subtle text-primary x-small rounded-pill px-2">
+                                {{ $info->kelas == 'Semua' ? 'UMUM' : $info->kelas }}
+                            </span>
+                            <small class="text-muted" style="font-size: 0.65rem;">{{ $info->created_at->diffForHumans() }}</small>
+                        </div>
+                        <h6 class="fw-bold text-dark small mb-1">{{ $info->judul }}</h6>
+                        <p class="text-muted mb-2 x-small text-truncate-2">{{ $info->pesan }}</p>
+                        <div class="d-flex align-items-center mt-auto pt-2 border-top border-light">
+                            <i class="fas fa-user-circle text-secondary me-1" style="font-size: 0.8rem;"></i>
+                            <span class="text-muted fw-bold" style="font-size: 0.65rem;">{{ $info->user->name }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+    {{-- ========================================================== --}}
+
+    {{-- SMART ATTENDANCE ALERT --}}
     @php
         $persentase = 85; // Idealnya ini diambil dari data kehadiran di database
     @endphp
@@ -178,7 +219,7 @@
                 </div>
             </div>
 
-            {{-- FITUR TAMBAHAN 2: JADWAL KULIAH HARI INI (DINAMIS) --}}
+            {{-- JADWAL KULIAH HARI INI --}}
             <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h6 class="fw-bold text-dark mb-0 small text-uppercase">Jadwal Hari Ini</h6>
@@ -217,6 +258,13 @@
     .text-navy { color: #0D1B2A !important; }
     .x-small { font-size: 0.7rem; }
 
+    .text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
     .btn-navy-grad {
         background: linear-gradient(90deg, #0D1B2A 0%, #1B263B 100%);
         color: white; border: none; transition: 0.3s;
@@ -242,6 +290,8 @@
     .bg-success-subtle { background-color: #f0fdf4 !important; color: #15803d !important; }
     .bg-warning-subtle { background-color: #fffbeb !important; color: #b45309 !important; }
     .bg-danger-subtle { background-color: #fef2f2 !important; color: #b91c1c !important; }
+
+    .bg-primary-subtle { background-color: #eef2ff !important; color: #4338ca !important; }
 </style>
 
 <script>

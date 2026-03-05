@@ -1,260 +1,271 @@
 @extends('layouts.app')
 
-@section('title', 'Dashboard Dosen')
+@section('title', 'Dosen Console')
 
 @section('content')
-<div class="container-fluid px-4 mt-4">
-    <div class="d-flex align-items-center justify-content-between mb-4">
-        <div>
-            <h4 class="fw-bold mb-0">Selamat Datang, {{ Auth::user()->name }}</h4>
-            <p class="text-muted small mb-0">Kelola perizinan mahasiswa dan pantau jadwal mengajar Anda.</p>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+    :root {
+        --primary: #4361ee;
+        --bg-body: #f8fafc;
+        --border-color: #f1f5f9;
+    }
+
+    body {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+        background-color: var(--bg-body);
+        color: #334155;
+    }
+
+    .main-container { padding: 1.5rem 2rem; }
+
+    /* Stats Grid */
+    .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.25rem; margin-bottom: 2rem; }
+    .stat-item {
+        background: white; padding: 1.5rem; border-radius: 16px;
+        border: 1px solid var(--border-color); display: flex; align-items: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .stat-icon {
+        width: 48px; height: 48px; border-radius: 12px;
+        display: flex; align-items: center; justify-content: center; margin-right: 15px;
+        font-size: 1.25rem;
+    }
+
+    /* Layout Wrapper Baru untuk Jadwal & Pengumuman */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem; }
+
+    .info-card {
+        background: white; border-radius: 20px; border: 1px solid var(--border-color);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.02); padding: 1.25rem;
+    }
+
+    .info-card-header { display: flex; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 10px; }
+    .info-card-header i { margin-right: 10px; color: var(--primary); }
+
+    /* List Item untuk Jadwal & Pengumuman */
+    .list-item-custom {
+        display: flex; align-items: center; padding: 10px; border-radius: 12px;
+        border: 1px solid transparent; transition: 0.2s; margin-bottom: 5px;
+    }
+    .list-item-custom:hover { background: #f0f4ff; border-color: #e0e7ff; }
+
+    .time-badge {
+        background: var(--primary); color: white; padding: 4px 10px;
+        border-radius: 8px; font-weight: 700; font-size: 11px; margin-right: 12px;
+    }
+
+    .ann-badge { background: #fff9db; color: #fab005; padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800; }
+
+    /* Content Card (Tabel Verifikasi) */
+    .content-card {
+        background: white; border-radius: 20px; border: 1px solid var(--border-color);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03); overflow: hidden;
+    }
+
+    .table-header {
+        padding: 1.5rem; border-bottom: 1px solid var(--border-color);
+        display: flex; justify-content: space-between; align-items: center;
+    }
+
+    /* Table Design */
+    .table-custom { width: 100%; border-collapse: collapse; }
+    .table-custom thead th {
+        background: #ffffff; color: #94a3b8; font-weight: 700; font-size: 12px;
+        text-transform: uppercase; letter-spacing: 0.05em; padding: 15px 1.5rem;
+        border-bottom: 1px solid #f8fafc;
+    }
+
+    .table-custom tbody td {
+        padding: 1.25rem 1.5rem; border-bottom: 1px solid #f8fafc;
+        font-size: 14px; vertical-align: middle;
+    }
+
+    /* Badge & Button (Tetap Sama) */
+    .badge-status { font-weight: 700; font-size: 11px; padding: 6px 14px; border-radius: 8px; text-transform: uppercase; }
+    .status-ditolak { background: #fff5f5; color: #fa5252; }
+    .status-disetujui { background: #ebfbee; color: #40c057; }
+    .status-menunggu { background: #fff9db; color: #fab005; }
+
+    .btn-verif-group { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-action { width: 40px; height: 40px; border-radius: 10px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.2s; }
+    .btn-approve { background-color: #2ecc71; color: white; }
+    .btn-reject { background-color: #f1f5f9; color: #ff4757; }
+    .btn-action:hover { transform: scale(1.1); }
+
+    .search-container { position: relative; }
+    .search-container i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #94a3b8; }
+    .search-input { padding-left: 35px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; width: 250px; }
+</style>
+
+<div class="main-container">
+    <h2 class="fw-bold mb-4">Dashboard Dosen</h2>
+
+    {{-- Statistik Row (Tetap di Atas) --}}
+    <div class="stat-grid">
+        <div class="stat-item">
+            <div class="stat-icon" style="background: #eef2ff; color: #4361ee;"><i class="fas fa-folder"></i></div>
+            <div>
+                <div class="text-muted fw-bold" style="font-size: 11px;">TOTAL IZIN</div>
+                <div class="fw-bold fs-4">{{ $suratIzin->count() }}</div>
+            </div>
         </div>
-        <div class="badge bg-white text-dark shadow-sm border px-3 py-2 rounded-pill">
-            <i class="fas fa-calendar-day me-1 text-primary"></i> {{ date('l, d F Y') }}
+        <div class="stat-item">
+            <div class="stat-icon" style="background: #fff9db; color: #fab005;"><i class="fas fa-clock"></i></div>
+            <div>
+                <div class="text-muted fw-bold" style="font-size: 11px;">MENUNGGU</div>
+                <div class="fw-bold fs-4">{{ $suratIzin->where('status', 'pending')->count() }}</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background: #ebfbee; color: #40c057;"><i class="fas fa-check-circle"></i></div>
+            <div>
+                <div class="text-muted fw-bold" style="font-size: 11px;">DISETUJUI</div>
+                <div class="fw-bold fs-4">{{ $suratIzin->where('status', 'disetujui')->count() }}</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-icon" style="background: #fff5f5; color: #fa5252;"><i class="fas fa-times-circle"></i></div>
+            <div>
+                <div class="text-muted fw-bold" style="font-size: 11px;">DITOLAK</div>
+                <div class="fw-bold fs-4">{{ $suratIzin->where('status', 'ditolak')->count() }}</div>
+            </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden card-stat">
-                <div class="card-body p-4 border-start border-primary border-5">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted fw-bold text-uppercase small mb-1">Total Surat</h6>
-                            <h2 class="fw-bold mb-0" id="count-total">{{ $suratIzin->count() }}</h2>
-                        </div>
-                        <i class="fas fa-envelope-open-text fa-2x text-primary opacity-25"></i>
+    {{-- Info Grid: Jadwal & Pengumuman (Ditambahkan di sini agar rapi) --}}
+    <div class="info-grid">
+        <div class="info-card">
+            <div class="info-card-header">
+                <i class="fas fa-calendar-alt"></i>
+                <h6 class="fw-bold mb-0">Jadwal Mengajar Hari Ini</h6>
+            </div>
+            <div class="info-body">
+                @forelse($jadwals as $j)
+                <div class="list-item-custom">
+                    <span class="time-badge">{{ $j->jam_mulai }}</span>
+                    <div>
+                        <div class="fw-bold small">{{ $j->mata_kuliah }}</div>
+                        <div class="text-muted" style="font-size: 11px;">Kelas: {{ $j->kelas }} | Ruangan: {{ $j->ruangan }}</div>
                     </div>
                 </div>
+                @empty
+                <p class="text-center text-muted small py-3">Tidak ada jadwal mengajar.</p>
+                @endforelse
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden card-stat">
-                <div class="card-body p-4 border-start border-warning border-5">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted fw-bold text-uppercase small mb-1">Menunggu</h6>
-                            <h2 class="fw-bold mb-0 text-warning" id="count-menunggu">{{ $suratIzin->where('status', 'menunggu')->count() }}</h2>
-                        </div>
-                        <i class="fas fa-clock fa-2x text-warning opacity-25"></i>
-                    </div>
-                </div>
+
+        <div class="info-card">
+            <div class="info-card-header">
+                <i class="fas fa-bullhorn" style="color: #fab005;"></i>
+                <h6 class="fw-bold mb-0">Pengumuman Terbaru</h6>
             </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden card-stat">
-                <div class="card-body p-4 border-start border-success border-5">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted fw-bold text-uppercase small mb-1">Disetujui</h6>
-                            <h2 class="fw-bold mb-0 text-success" id="count-disetujui">{{ $suratIzin->where('status', 'disetujui')->count() }}</h2>
+            <div class="info-body">
+                @forelse($pengumumans as $p)
+                <div class="list-item-custom">
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold small">{{ Str::limit($p->judul, 30) }}</span>
+                            <span class="ann-badge">INFO</span>
                         </div>
-                        <i class="fas fa-check-double fa-2x text-success opacity-25"></i>
+                        <div class="text-muted" style="font-size: 11px;">{{ $p->created_at->diffForHumans() }}</div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-3">
-            <div class="card border-0 shadow-sm rounded-4 h-100 overflow-hidden card-stat">
-                <div class="card-body p-4 border-start border-danger border-5">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <h6 class="text-muted fw-bold text-uppercase small mb-1">Ditolak</h6>
-                            <h2 class="fw-bold mb-0 text-danger" id="count-ditolak">{{ $suratIzin->where('status', 'ditolak')->count() }}</h2>
-                        </div>
-                        <i class="fas fa-times-circle fa-2x text-danger opacity-25"></i>
-                    </div>
-                </div>
+                @empty
+                <p class="text-center text-muted small py-3">Belum ada pengumuman.</p>
+                @endforelse
             </div>
         </div>
     </div>
 
-    <div class="card border-0 shadow-sm rounded-4 mb-5 overflow-hidden">
-        <div class="card-header bg-white py-3 border-0">
-            <div class="d-flex justify-content-between align-items-center">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-list me-2 text-primary"></i>Daftar Pengajuan Izin</h5>
-                <span class="badge bg-primary-soft text-primary px-3 rounded-pill">Data Real-time</span>
+    {{-- Tabel Utama (Tetap Seperti Semula) --}}
+    <div class="content-card">
+        <div class="table-header">
+            <h6 class="fw-bold mb-0">Data Pengajuan Mahasiswa</h6>
+            <div class="search-container">
+                <i class="fas fa-search"></i>
+                <input type="text" id="searchInput" class="form-control search-input" placeholder="Cari Nama atau NIM...">
             </div>
         </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0" id="table-izin">
-                    <thead class="bg-light">
-                        <tr class="text-secondary small">
-                            <th class="ps-4 py-3">MAHASISWA</th>
-                            <th>KELAS</th>
-                            <th>JENIS IZIN</th>
-                            <th>PERIODE</th>
-                            <th>STATUS</th>
-                            <th class="text-center">AKSI</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($suratIzin as $surat)
-                        @php $st = strtolower($surat->status); @endphp
-                        <tr id="row-{{ $surat->id }}" class="border-bottom">
-                            <td class="ps-4">
-                                <div class="fw-bold text-dark">{{ $surat->user->name ?? '-' }}</div>
-                                <div class="text-muted x-small">NIM: {{ $surat->user->nim_nip ?? '-' }}</div>
-                            </td>
-                            <td><span class="badge bg-light text-dark border px-2 py-1">{{ $surat->user->kelas ?? '-' }}</span></td>
-                            <td><span class="text-primary fw-semibold">{{ $surat->jenis_izin }}</span></td>
-                            <td class="small text-muted">
-                                {{ $surat->tanggal_mulai }} <br>
-                                <span class="x-small">s/d {{ $surat->tanggal_selesai }}</span>
-                            </td>
-                            <td class="status-label-cell text-center">
-                                @if($st == 'disetujui')
-                                    <span class="badge bg-success-soft text-success px-3 py-2 rounded-pill w-100 status-text">Disetujui</span>
-                                @elseif($st == 'ditolak')
-                                    <span class="badge bg-danger-soft text-danger px-3 py-2 rounded-pill w-100 status-text">Ditolak</span>
-                                @else
-                                    <span class="badge bg-warning-soft text-warning px-3 py-2 rounded-pill w-100 text-dark status-text">Menunggu</span>
-                                @endif
-                            </td>
-                            <td class="text-center px-4">
-                                <div class="btn-group shadow-sm rounded-3 overflow-hidden" role="group">
-                                    <a href="{{ route('dosen.surat_detail', $surat->id) }}" class="btn btn-sm btn-white border" title="Detail">
-                                        <i class="fas fa-eye text-primary"></i>
-                                    </a>
-                                    <button onclick="updateStatus({{ $surat->id }}, 'disetujui')"
-                                        class="btn btn-sm btn-setujui {{ $st == 'disetujui' ? 'btn-success' : 'btn-outline-success' }}"
-                                        {{ $st == 'disetujui' ? 'disabled' : '' }}>
+
+        <div class="table-responsive">
+            <table class="table-custom">
+                <thead>
+                    <tr>
+                        <th>Mahasiswa</th>
+                        <th>NIM & Kelas</th>
+                        <th>Jenis Izin</th>
+                        <th>Status</th>
+                        <th>Dokumen</th>
+                        <th class="text-end pe-4">Verifikasi</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody">
+                    @forelse($suratIzin as $si)
+                    <tr>
+                        <td><strong class="searchable-name">{{ $si->user->name }}</strong></td>
+                        <td>
+                            <span class="fw-bold text-dark">{{ $si->user->nim_nip }}</span>
+                            <span class="text-muted">({{ $si->user->kelas }})</span>
+                        </td>
+                        <td><span class="text-primary fw-bold" style="font-size: 12px;">{{ strtoupper($si->jenis_izin) }}</span></td>
+                        <td>
+                            @if($si->status == 'pending')
+                                <span class="badge-status status-menunggu">MENUNGGU</span>
+                            @elseif($si->status == 'disetujui')
+                                <span class="badge-status status-disetujui">DISETUJUI</span>
+                            @else
+                                <span class="badge-status status-ditolak">DITOLAK</span>
+                            @endif
+                        </td>
+                        <td>
+                            <a href="{{ route('dosen.suratDetail', $si->id) }}" style="color: var(--primary); font-weight: 600; text-decoration: none; font-size: 13px;">
+                                <i class="fas fa-external-link-alt me-1"></i> Lihat
+                            </a>
+                        </td>
+                        <td class="pe-4">
+                            <div class="btn-verif-group">
+                                <form action="{{ route('dosen.setujuiSurat', $si->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn-action btn-approve">
                                         <i class="fas fa-check"></i>
                                     </button>
-                                    <button onclick="updateStatus({{ $surat->id }}, 'ditolak')"
-                                        class="btn btn-sm btn-tolak {{ $st == 'ditolak' ? 'btn-danger' : 'btn-outline-danger' }}"
-                                        {{ $st == 'ditolak' ? 'disabled' : '' }}>
+                                </form>
+                                <form action="{{ route('dosen.tolakSurat', $si->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn-action btn-reject">
                                         <i class="fas fa-times"></i>
                                     </button>
-                                </div>
-                            </td>
-                        </tr>
-                        @empty
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <i class="fas fa-folder-open fa-3x text-light mb-3"></i>
-                                <p class="text-muted mt-2">Tidak ada pengajuan izin dari mahasiswa Anda.</p>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <h5 class="fw-bold mb-3 text-dark"><i class="fas fa-calendar-alt me-2 text-primary"></i>Jadwal Mengajar</h5>
-    <div class="row g-3 mb-4">
-        @foreach(['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'] as $hari)
-        <div class="col-md-4 col-lg-2">
-            <div class="card border-0 shadow-sm rounded-4 h-100">
-                <div class="card-header bg-white py-2 text-center border-bottom-0">
-                    <span class="fw-bold small {{ isset($jadwals[$hari]) ? 'text-primary' : 'text-muted opacity-50' }}">{{ $hari }}</span>
-                </div>
-                <div class="card-body p-2 pt-0">
-                    @if(isset($jadwals[$hari]))
-                        @foreach($jadwals[$hari] as $j)
-                            <div class="p-2 bg-primary-soft rounded-3 mb-2 border-start border-primary border-3">
-                                <div class="fw-bold text-dark" style="font-size: 0.75rem; line-height: 1.2;">{{ $j->mata_kuliah }}</div>
-                                <div class="text-muted x-small mt-1">
-                                    <i class="far fa-clock"></i> {{ substr($j->jam_mulai, 0, 5) }}<br>
-                                    <i class="fas fa-map-marker-alt"></i> <strong>{{ $j->kelas }}</strong>
-                                </div>
+                                </form>
                             </div>
-                        @endforeach
-                    @else
-                        <div class="text-center py-3">
-                            <span class="badge rounded-pill bg-light text-muted x-small fw-normal italic">Libur</span>
-                        </div>
-                    @endif
-                </div>
-            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr><td colspan="6" class="text-center py-5 text-muted">Tidak ada data izin masuk.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-        @endforeach
     </div>
 </div>
 
-<style>
-    .bg-success-soft { background-color: #ecfdf5; }
-    .bg-danger-soft { background-color: #fef2f2; }
-    .bg-warning-soft { background-color: #fffbeb; }
-    .bg-primary-soft { background-color: #eff6ff; }
-    .card-stat { transition: all 0.3s ease; border: 1px solid rgba(0,0,0,0.02); }
-    .card-stat:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05) !important; }
-    .x-small { font-size: 0.7rem; }
-    .btn-white { background: #fff; }
-    .table thead th { border: none; letter-spacing: 0.5px; text-transform: uppercase; }
-</style>
-
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-function updateStatus(id, statusBaru) {
-    let row = $('#row-' + id);
-    let cellStatus = row.find('.status-label-cell');
-    let btnSetujui = row.find('.btn-setujui');
-    let btnTolak = row.find('.btn-tolak');
-
-    $.ajax({
-        url: "{{ url('dosen/surat/verifikasi') }}/" + id,
-        type: "POST",
-        data: {
-            _token: "{{ csrf_token() }}",
-            status: statusBaru // Ini mengirim 'disetujui' atau 'ditolak'
-        },
-        beforeSend: function() {
-            row.css('opacity', '0.6');
-        },
-        success: function(response) {
-            row.css('opacity', '1');
-            if(response.success) {
-                let st = statusBaru.toLowerCase();
-
-                // 1. Update Badge Status
-                let badgeHTML = '';
-                if(st === 'disetujui') {
-                    badgeHTML = '<span class="badge bg-success-soft text-success px-3 py-2 rounded-pill w-100 status-text shadow-sm">Disetujui</span>';
-                    btnSetujui.removeClass('btn-outline-success').addClass('btn-success').prop('disabled', true);
-                    btnTolak.removeClass('btn-danger').addClass('btn-outline-danger').prop('disabled', false);
-                } else if(st === 'ditolak') {
-                    badgeHTML = '<span class="badge bg-danger-soft text-danger px-3 py-2 rounded-pill w-100 status-text shadow-sm">Ditolak</span>';
-                    btnTolak.removeClass('btn-outline-danger').addClass('btn-danger').prop('disabled', true);
-                    btnSetujui.removeClass('btn-success').addClass('btn-outline-success').prop('disabled', false);
-                }
-
-                cellStatus.fadeOut(200, function() {
-                    $(this).html(badgeHTML).fadeIn(200);
-                    refreshStatistics();
-                });
-            }
-        },
-        error: function() {
-            row.css('opacity', '1');
-            alert('Gagal memperbarui status. Coba lagi.');
-        }
+    document.getElementById('searchInput').addEventListener('keyup', function() {
+        let q = this.value.toLowerCase();
+        let rows = document.querySelectorAll('#dataTableBody tr');
+        rows.forEach(row => {
+            let name = row.querySelector('.searchable-name').innerText.toLowerCase();
+            row.style.display = name.includes(q) ? '' : 'none';
+        });
     });
-}
-
-function refreshStatistics() {
-    let jmlMenunggu = 0, jmlDisetujui = 0, jmlDitolak = 0;
-
-    $('.status-text').each(function() {
-        let text = $(this).text().trim().toLowerCase();
-        if(text === 'menunggu') jmlMenunggu++;
-        if(text === 'disetujui') jmlDisetujui++;
-        if(text === 'ditolak') jmlDitolak++;
-    });
-
-    updateCounter('#count-menunggu', jmlMenunggu);
-    updateCounter('#count-disetujui', jmlDisetujui);
-    updateCounter('#count-ditolak', jmlDitolak);
-    updateCounter('#count-total', (jmlMenunggu + jmlDisetujui + jmlDitolak));
-}
-
-function updateCounter(selector, value) {
-    $(selector).fadeOut(150, function() {
-        $(this).text(value).fadeIn(150);
-    });
-}
 </script>
+
+@if(session('success'))
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050">
+    <div class="alert alert-dark shadow-lg border-0 text-white" style="border-radius: 12px;">
+        <i class="fas fa-check-circle text-success me-2"></i> {{ session('success') }}
+    </div>
+</div>
+@endif
 @endsection
