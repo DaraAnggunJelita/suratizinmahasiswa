@@ -8,20 +8,24 @@ use Illuminate\Support\Facades\Auth;
 
 class RoleMiddleware
 {
-    public function handle(Request $request, Closure $next, $role)
+    /**
+     * Handle an incoming request.
+     * Tanda ...$roles memungkinkan middleware menerima lebih dari satu parameter.
+     */
+    public function handle(Request $request, Closure $next, ...$roles)
     {
         if (!Auth::check()) {
             return redirect('/login');
         }
 
-        if (!$role) {
-            abort(500, 'Role middleware error: parameter role tidak diberikan.');
+        $user = Auth::user();
+
+        // Cek apakah role user ada di dalam daftar yang diizinkan
+        if (in_array($user->role, $roles)) {
+            return $next($request);
         }
 
-        if (Auth::user()->role !== $role) {
-            abort(403, 'Akses ditolak!');
-        }
-
-        return $next($request);
+        // Jika tidak sesuai, munculkan 403
+        abort(403, 'AKSES DITOLAK!');
     }
 }

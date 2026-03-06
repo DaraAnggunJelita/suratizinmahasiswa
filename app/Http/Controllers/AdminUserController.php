@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use App\Models\Absensi;
 
 class AdminUserController extends Controller
 {
@@ -80,4 +81,27 @@ class AdminUserController extends Controller
         $user = User::findOrFail($id);
         return view('admin.users.show', compact('user'));
     }
+
+    public function listKelas()
+{
+    // Mengambil daftar kelas unik dari tabel users yang rolenya mahasiswa
+    $daftar_kelas = User::where('role', 'mahasiswa')
+                        ->whereNotNull('kelas')
+                        ->distinct()
+                        ->orderBy('kelas', 'asc') // Tambahkan ini agar MI 3A di atas
+                        ->pluck('kelas');
+
+    return view('admin.absensi.index', compact('daftar_kelas'));
+}
+
+public function rekapAbsen($kelas)
+{
+    // Mengambil data absensi langsung dari tabel absensi berdasarkan kolom kelas
+    // Kita tetap pakai with('user') agar bisa mengambil foto profil atau data lain jika dibutuhkan
+    $absensi = Absensi::where('kelas', $kelas)
+                      ->orderBy('tanggal', 'desc')
+                      ->get();
+
+    return view('admin.absensi.rekap', compact('absensi', 'kelas'));
+}
 }

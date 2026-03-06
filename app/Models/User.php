@@ -47,8 +47,13 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Relasi ke model Absensi.
+     * Menghubungkan nim_nip di tabel users dengan nim_mahasiswa di tabel absensi.
+     */
+    public function absensis()
+    {
+        return $this->hasMany(Absensi::class, 'nim_mahasiswa', 'nim_nip');
+    }
 }
-
-
-
-

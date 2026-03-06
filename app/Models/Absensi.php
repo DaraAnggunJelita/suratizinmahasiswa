@@ -14,6 +14,13 @@ class Absensi extends Model
         'nim_mahasiswa',
         'kelas',
         'status',
-        'tanggal'
+        'tanggal',
+        'absensi'
     ];
+
+    // TAMBAHKAN INI: Menghubungkan Absensi ke User berdasarkan NIM
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'nim_mahasiswa', 'nim_nip');
+    }
 }

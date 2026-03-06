@@ -30,7 +30,7 @@
                     <tr>
                         <th class="ps-4">No</th>
                         <th>Judul & Pesan</th>
-                        <th>Target Kelas</th>
+                        <th>Kelas</th>
                         <th>Pengirim</th>
                         <th>Tanggal</th>
                         <th class="text-end pe-4">Opsi</th>
@@ -92,7 +92,7 @@
                                             <input type="text" name="judul" class="form-control bg-light border-0" value="{{ $p->judul }}" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label class="form-label small fw-bold">Target Kelas</label>
+                                            <label class="form-label small fw-bold">Kelas</label>
                                             <select name="kelas" class="form-select bg-light border-0" required>
                                                 <option value="Semua" {{ $p->kelas == 'Semua' ? 'selected' : '' }}>Semua Kelas</option>
                                                 <option value="MI 3A" {{ $p->kelas == 'MI 3A' ? 'selected' : '' }}>MI 3A</option>

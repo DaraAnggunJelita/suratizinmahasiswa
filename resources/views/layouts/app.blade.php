@@ -34,7 +34,7 @@
             transition: all 0.3s ease;
             display: flex;
             flex-direction: column;
-            padding: 20px 15px; /* Kurangi padding agar lebih luas */
+            padding: 20px 15px;
         }
 
         .sidebar-brand {
@@ -47,14 +47,12 @@
             color: #ffffff;
         }
 
-        /* Navigasi Scrollable jika menu penuh */
         .sidebar-nav-container {
             flex: 1;
             overflow-y: auto;
             padding-right: 5px;
         }
 
-        /* Custom Scrollbar untuk Sidebar */
         .sidebar-nav-container::-webkit-scrollbar { width: 4px; }
         .sidebar-nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
@@ -64,14 +62,14 @@
             letter-spacing: 0.1em;
             font-weight: 700;
             color: #475569;
-            margin: 15px 15px 8px; /* Spasi lebih rapat */
+            margin: 15px 15px 8px;
         }
 
         .sidebar nav a {
             display: flex;
             align-items: center;
             gap: 10px;
-            padding: 10px 15px; /* Lebih compact */
+            padding: 10px 15px;
             color: #94a3b8;
             font-weight: 600;
             text-decoration: none;
@@ -84,16 +82,6 @@
         .sidebar nav a:hover { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
         .sidebar nav a.active { background: rgba(37, 99, 235, 0.15); color: #ffffff; border-left: 3px solid var(--primary); }
 
-        /* BOX PROFIL DOSEN */
-        .sidebar-profile-box {
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 12px;
-            padding: 12px;
-            margin-top: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        /* TOPBAR & CONTENT */
         .topbar {
             margin-left: 280px;
             height: 70px;
@@ -133,15 +121,21 @@
                     <a href="{{ route('dosen.dashboard') }}" class="{{ request()->is('dosen/dashboard*') ? 'active' : '' }}">
                         <i class="fas fa-th-large"></i> Dashboard
                     </a>
+                @elseif(Auth::user()->role == 'admin')
+                    <a href="{{ route('admin.dashboard') }}" class="{{ request()->is('admin/dashboard*') ? 'active' : '' }}">
+                        <i class="fas fa-th-large"></i> Dashboard
+                    </a>
                 @else
-                    <a href="/admin/dashboard" class="{{ request()->is('admin/dashboard*') ? 'active' : '' }}">
-                        <i class="fas fa-th-large"></i> Dashboard 
+                    {{-- Dashboard Mahasiswa --}}
+                    <a href="{{ route('mahasiswa.surat_izin.index') }}" class="{{ request()->is('mahasiswa/surat-izin*') ? 'active' : '' }}">
+                        <i class="fas fa-th-large"></i> Dashboard
                     </a>
                 @endif
 
                 <div class="nav-label">AKADEMIK</div>
+                {{-- Menu Pengumuman hanya muncul untuk Admin dan Dosen --}}
                 @if(Auth::user()->role == 'admin' || Auth::user()->role == 'dosen')
-                    <a href="{{ route('pengumuman.index') }}" class="{{ request()->is('admin/pengumuman*') ? 'active' : '' }}">
+                    <a href="{{ route('admin.pengumuman.index') }}" class="{{ request()->is('admin/pengumuman*') ? 'active' : '' }}">
                         <i class="fas fa-bullhorn"></i> Pengumuman
                     </a>
                 @endif
@@ -161,26 +155,22 @@
                     <a href="{{ route('dosen.absensi', 'MI 3C') }}" class="{{ request()->is('*MI 3C*') ? 'active' : '' }}">
                         <i class="fas fa-user-check"></i> Kelas MI 3C
                     </a>
-
-                    {{-- <div class="sidebar-profile-box mx-2">
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="bg-primary d-flex align-items-center justify-content-center rounded-circle text-white fw-bold" style="width: 35px; height: 35px; font-size: 0.8rem; flex-shrink: 0;">
-                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                            </div>
-                            <div class="overflow-hidden">
-                                <div class="text-white fw-bold text-truncate" style="font-size: 0.8rem;">{{ Auth::user()->name }}</div>
-                                <div style="font-size: 9px; color: #64748b;">NIP: {{ Auth::user()->nim_nip }}</div>
-                            </div>
-                        </div>
-                    </div> --}}
                 @endif
 
                 <div class="nav-label">SISTEM</div>
+
                 @if(Auth::user()->role == 'admin')
+                    {{-- Menu Khusus Admin --}}
+                    <a href="{{ route('admin.absensi.index') }}" class="{{ request()->is('admin/absensi*') ? 'active' : '' }}">
+                        <i class="fas fa-clipboard-check"></i> Monitoring Absensi
+                    </a>
+
                     <a href="{{ route('admin.users.index') }}" class="{{ request()->is('admin/users*') ? 'active' : '' }}">
                         <i class="fas fa-users-cog"></i> Manajemen User
                     </a>
                 @endif
+
+                {{-- Profil Saya muncul untuk semua role (Admin, Dosen, Mahasiswa) --}}
                 <a href="{{ route('profile.index') }}" class="{{ request()->is('profile*') ? 'active' : '' }}">
                     <i class="fas fa-user-circle"></i> Profil Saya
                 </a>

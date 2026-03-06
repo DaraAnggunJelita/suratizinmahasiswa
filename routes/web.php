@@ -40,6 +40,7 @@ Route::middleware('auth')->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::prefix('mahasiswa')->middleware(['auth', RoleMiddleware::class . ':mahasiswa'])->group(function () {
+    Route::get('/dashboard', [MahasiswaSurat::class, 'index'])->name('mahasiswa.dashboard');
     Route::get('/surat-izin', [MahasiswaSurat::class, 'index'])->name('mahasiswa.surat_izin.index');
     Route::get('/surat-izin/create', [MahasiswaSurat::class, 'create'])->name('mahasiswa.surat_izin.create');
     Route::post('/surat-izin', [MahasiswaSurat::class, 'store'])->name('mahasiswa.surat_izin.store');
@@ -50,18 +51,31 @@ Route::prefix('mahasiswa')->middleware(['auth', RoleMiddleware::class . ':mahasi
 
 /*
 |--------------------------------------------------------------------------
-| ADMIN ROUTES
+| ADMIN & DOSEN SHARED ROUTES (PENGUMUMAN) - PERBAIKAN DI SINI
+|--------------------------------------------------------------------------
+*/
+// Izinkan Admin dan Dosen mengakses semua fungsi resource pengumuman
+Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin,dosen'])->name('admin.')->group(function () {
+    Route::resource('pengumuman', PengumumanController::class);
+});
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN ROUTES (STRICT ADMIN ONLY)
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->name('admin.')->group(function () {
+
+// Rute Baru: Admin Absensi
+    Route::get('/absensi', [AdminUserController::class, 'listKelas'])->name('absensi.index');
+    Route::get('/absensi/rekap/{kelas}', [AdminUserController::class, 'rekapAbsen'])->name('absensi.rekap');
 
     Route::get('/dashboard', [AdminSurat::class, 'index'])->name('dashboard');
 
     // User Management
     Route::resource('users', AdminUserController::class);
 
-    // Pengumuman Management (Hanya Create, Edit, Delete untuk Admin)
-    Route::resource('pengumuman', PengumumanController::class)->except(['index', 'show']);
+    // Pengumuman Quick Broadcast (Admin Only)
     Route::post('/quick-broadcast', [AdminSurat::class, 'storePengumuman'])->name('pengumuman.quick-store');
 
     // Surat Izin Management (Admin)
@@ -95,7 +109,8 @@ Route::prefix('dosen')->middleware(['auth', RoleMiddleware::class . ':dosen'])->
     Route::post('/absensi/store', [DashboardDosenController::class, 'storeAbsen'])->name('dosen.storeAbsen');
     Route::get('/absensi/edit/{id}', [DashboardDosenController::class, 'editAbsen'])->name('dosen.editAbsen');
     Route::put('/absensi/update/{id}', [DashboardDosenController::class, 'updateAbsen'])->name('dosen.updateAbsen');
-Route::delete('/dosen/absensi/delete/{id}', [DashboardDosenController::class, 'destroyAbsen'])->name('dosen.destroyAbsen');
+    Route::delete('/absensi/delete/{id}', [DashboardDosenController::class, 'destroyAbsen'])->name('dosen.destroyAbsen');
+
     // Shortcut
     Route::get('/absen', function () {
         return redirect()->route('dosen.absensi', ['kelas' => 'MI 3A']);

@@ -11,43 +11,48 @@ class PengumumanController extends Controller
     // Tampilkan Daftar Pengumuman (Gambar 1 yang Anda kirim)
     public function index()
     {
-        $pengumumans = Pengumuman::with('user')->latest()->get();
+        $pengumumans = Pengumuman::with(relations: 'user')->latest()->get();
         return view('pengumuman.index', compact('pengumumans'));
     }
 
     // Simpan Pengumuman baru
     public function store(Request $request)
-    {
-        $request->validate([
-            'judul' => 'required|string|max:255',
-            'pesan' => 'required',
-            'target_kelas' => 'nullable|string' // Jika ada field target kelas seperti di gambar
-        ]);
+{
+    $request->validate([
+        'judul' => 'required|string|max:255',
+        'pesan' => 'required',
+        'kelas' => 'required' // Ini nama dari input form
+    ]);
 
-        Pengumuman::create([
-            'judul' => $request->judul,
-            'pesan' => $request->pesan,
-            'target_kelas' => $request->target_kelas,
-            'user_id' => Auth::id(),
-        ]);
+    Pengumuman::create([
+        'judul' => $request->judul,
+        'pesan' => $request->pesan,
+        'kelas' => $request->kelas, // Disimpan ke kolom 'kelas'
+        'user_id' => Auth::id(),
+    ]);
 
-        return redirect()->back()->with('success', 'Pengumuman berhasil dipublikasikan!');
-    }
+    return redirect()->back()->with('success', 'Pengumuman berhasil dipublikasikan!');
+}
 
-    // Update Pengumuman (Fungsi Edit)
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'judul' => 'required|string|max:255',
-            'pesan' => 'required',
-        ]);
+public function update(Request $request, $id)
+{
+    $request->validate([
+        'judul' => 'required|string|max:255',
+        'kelas' => 'required', // Nama dari input form
+        'pesan' => 'required',
+    ]);
 
-        $pengumuman = Pengumuman::findOrFail($id);
-        $pengumuman->update($request->all());
+    $pengumuman = Pengumuman::findOrFail($id);
 
-        return redirect()->route('pengumuman.index')->with('success', 'Pengumuman berhasil diperbarui!');
-    }
+    $pengumuman->update([
+        'judul' => $request->judul,
+        'kelas' => $request->kelas, // Diupdate ke kolom 'kelas'
+        'pesan' => $request->pesan,
+        'user_id' => Auth::id(),
+    ]);
 
+    return redirect()->back()->with('success', 'Pengumuman berhasil diperbarui!');
+}
     // Hapus Pengumuman (Tombol Sampah di Gambar)
     public function destroy($id)
     {
