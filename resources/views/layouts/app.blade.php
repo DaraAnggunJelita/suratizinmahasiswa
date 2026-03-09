@@ -119,16 +119,16 @@
                 <div class="nav-label">MENU UTAMA</div>
                 @if(Auth::user()->role == 'dosen')
                     <a href="{{ route('dosen.dashboard') }}" class="{{ request()->is('dosen/dashboard*') ? 'active' : '' }}">
-                        <i class="fas fa-th-large"></i> Dashboard
+                        <i class="fas fa-th-large"></i> Dashboard Dosen
                     </a>
                 @elseif(Auth::user()->role == 'admin')
                     <a href="{{ route('admin.dashboard') }}" class="{{ request()->is('admin/dashboard*') ? 'active' : '' }}">
-                        <i class="fas fa-th-large"></i> Dashboard
+                        <i class="fas fa-th-large"></i> Dashboard Admin
                     </a>
                 @else
                     {{-- Dashboard Mahasiswa --}}
                     <a href="{{ route('mahasiswa.surat_izin.index') }}" class="{{ request()->is('mahasiswa/surat-izin*') ? 'active' : '' }}">
-                        <i class="fas fa-th-large"></i> Dashboard
+                        <i class="fas fa-th-large"></i> Dashboard Mahasiswa
                     </a>
                 @endif
 

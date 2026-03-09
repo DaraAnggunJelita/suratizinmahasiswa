@@ -1,102 +1,89 @@
 @extends('layouts.app')
 
-@section('title', 'Jadwal Kuliah')
+@section('title', 'Jadwal ' . ($kelasAktif ?? ''))
 
 @section('content')
-<div class="container-fluid animate__animated animate__fadeIn">
+<div class="container animate__animated animate__fadeIn">
     {{-- ALERT NOTIFIKASI --}}
     @if(session('success'))
-    <div class="alert alert-minimal mb-4 d-flex align-items-center" role="alert">
-        <i class="fas fa-check-circle me-3 fs-5 text-success"></i>
-        <div class="fw-semibold text-success">{{ session('success') }}</div>
-        <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+    <div class="alert alert-minimal mb-3 d-flex align-items-center py-2 px-3 shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2 text-success"></i>
+        <div class="small fw-bold text-success">{{ session('success') }}</div>
+        <button type="button" class="btn-close ms-auto small" data-bs-dismiss="alert" style="font-size: 0.5rem;"></button>
     </div>
     @endif
 
     {{-- HEADER --}}
-    <div class="d-flex justify-content-between align-items-end mb-5">
+    <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h2 class="fw-800 text-dark mb-1" style="letter-spacing: -1px;">Jadwal Kuliah</h2>
-            <p class="text-muted small mb-0 d-flex align-items-center gap-2">
-                <i class="fas fa-id-badge text-primary opacity-75"></i>
-                @if(Auth::user()->role == 'mahasiswa')
-                    Jadwal aktif untuk Kelas <span class="badge-outline">{{ Auth::user()->kelas ?? 'Belum Diatur' }}</span>
-                @else
-                    Mode Pengelola ({{ ucfirst(Auth::user()->role) }})
-                @endif
-            </p>
+            <h4 class="fw-800 text-dark mb-0" style="letter-spacing: -0.5px;">Jadwal Perkuliahan</h4>
+            <p class="text-muted x-small mb-0">Kelas Aktif: <span class="text-primary fw-bold">{{ $kelasAktif }}</span></p>
         </div>
 
         @if(Auth::user()->role == 'admin')
-        <button class="btn btn-primary-clean rounded-pill px-4 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahJadwal">
-            <i class="fas fa-plus me-2"></i> Tambah Jadwal
+        <button class="btn btn-primary-compact rounded-pill px-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalTambahJadwal">
+            <i class="fas fa-plus me-1 small"></i> Tambah
         </button>
         @endif
     </div>
 
+    {{-- NAVIGASI TAB KELAS --}}
+    <div class="mb-4 text-center text-md-start">
+        <div class="d-flex gap-1 p-1 bg-light rounded-pill d-inline-flex border shadow-sm">
+            @foreach(['MI 3A', 'MI 3B', 'MI 3C'] as $kls)
+                <a href="{{ route('jadwal.index', ['kelas' => $kls]) }}"
+                   class="btn-tab {{ $kelasAktif == $kls ? 'active' : '' }}">
+                    {{ $kls }}
+                </a>
+            @endforeach
+        </div>
+    </div>
+
     {{-- GRID JADWAL PER HARI --}}
-    <div class="row g-4">
-        @php
-            $daftar_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        @endphp
+    <div class="row g-3">
+        @php $daftar_hari = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu']; @endphp
 
         @foreach($daftar_hari as $hari)
-        <div class="col-xl-4 col-md-6">
-            <div class="card border-0 shadow-sm rounded-4 h-100 day-card">
-                <div class="card-header py-3 px-4 d-flex justify-content-between align-items-center border-0 bg-transparent">
-                    <h6 class="fw-800 mb-0 text-dark d-flex align-items-center gap-2">
-                        <i class="fas fa-calendar-alt text-primary opacity-50"></i>
-                        {{ $hari }}
-                    </h6>
-                    <span class="count-badge">
-                        {{ isset($jadwals[$hari]) ? $jadwals[$hari]->count() : 0 }} Sesi
-                    </span>
+        <div class="col-lg-4 col-md-6">
+            <div class="card border-0 shadow-sm rounded-3 h-100 day-card">
+                <div class="card-header py-2 px-3 d-flex justify-content-between align-items-center border-0 bg-transparent">
+                    <span class="fw-bold text-dark small">{{ $hari }}</span>
+                    <span class="count-badge-mini">{{ isset($jadwals[$hari]) ? $jadwals[$hari]->count() : 0 }} Sesi</span>
                 </div>
 
-                <div class="card-body p-4 pt-0">
-                    <div class="border-top-faint mb-3"></div>
+                <div class="card-body p-3 pt-0">
+                    <hr class="mt-0 mb-2 opacity-5">
 
                     @if(isset($jadwals[$hari]) && $jadwals[$hari]->count() > 0)
                         @foreach($jadwals[$hari] as $item)
-                        <div class="session-item p-3 mb-2 rounded-3 transition-all hover-light position-relative">
-
-                            {{-- Action Buttons (Admin Only) --}}
+                        <div class="session-item p-2 mb-2 rounded-2 transition-all position-relative">
                             @if(Auth::user()->role == 'admin')
-                            <div class="position-absolute top-0 end-0 mt-2 me-2 opacity-0 action-btns transition-all">
-                                <form action="{{ route('admin.jadwal.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Hapus jadwal ini?')">
+                            <div class="position-absolute top-0 end-0 mt-1 me-1 opacity-0 action-btns">
+                                <form action="{{ route('admin.jadwal.destroy', $item->id) }}" method="POST" onsubmit="return confirm('Hapus?')">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn-icon-xs text-danger rounded-circle bg-white shadow-sm border">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </button>
+                                    <button type="submit" class="btn-delete-mini"><i class="fas fa-times"></i></button>
                                 </form>
                             </div>
                             @endif
 
-                            <div class="d-flex gap-3 align-items-center mb-2">
-                                <div class="time-box text-center rounded-2 px-2 py-1">
-                                    <span class="d-block fw-bold text-dark small">{{ date('H:i', strtotime($item->jam_mulai)) }}</span>
-                                    <span class="x-small text-muted opacity-75 fw-medium">WIB</span>
-                                </div>
-                                <div>
-                                    <h6 class="fw-bold text-dark mb-0 small" style="line-height: 1.3;">{{ $item->mata_kuliah }}</h6>
-                                    <span class="x-small text-muted fw-medium d-block mt-1">
-                                        <i class="fas fa-chalkboard-teacher me-1 opacity-50"></i>{{ $item->dosen_pengajar }}
-                                    </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="time-tag">{{ date('H:i', strtotime($item->jam_mulai)) }}</div>
+                                <div class="overflow-hidden">
+                                    <h6 class="fw-bold text-dark mb-0 text-truncate" style="font-size: 0.8rem;">{{ $item->mata_kuliah }}</h6>
+                                    <p class="x-small text-muted mb-0 text-truncate">{{ $item->dosen_pengajar }}</p>
                                 </div>
                             </div>
 
-                            <div class="d-flex justify-content-between align-items-center pt-2 mt-2 border-top-faint">
-                                <div class="d-flex align-items-center gap-2 text-muted x-smallfw-medium">
-                                    <i class="fas fa-map-marker-alt opacity-50"></i> {{ $item->ruangan }}
-                                </div>
-                                <span class="badge bg-light text-muted border x-small fw-bold px-2 rounded-pill">{{ $item->kelas }}</span>
+                            <div class="d-flex justify-content-between align-items-center mt-2 pt-1 border-top border-faint">
+                                <span class="x-small text-muted"><i class="fas fa-door-open me-1"></i>{{ $item->ruangan }}</span>
+                                <span class="badge-class">{{ $item->kelas }}</span>
                             </div>
                         </div>
                         @endforeach
                     @else
-                        <div class="text-center py-5 opacity-40">
-                            <i class="fas fa-coffee fa-2x mb-2 text-muted"></i>
-                            <p class="x-small fw-bold text-muted text-uppercase tracking-wider mb-0">Tidak Ada Jadwal</p>
+                        <div class="text-center py-4">
+                            <i class="fas fa-moon mb-1 text-muted opacity-25"></i>
+                            <p class="x-small text-muted mb-0">Tidak ada jadwal</p>
                         </div>
                     @endif
                 </div>
@@ -106,60 +93,48 @@
     </div>
 </div>
 
-{{-- MODAL TAMBAH JADWAL (ADMIN ONLY) --}}
+{{-- MODAL --}}
 @if(Auth::user()->role == 'admin')
 <div class="modal fade" id="modalTambahJadwal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
-            <div class="modal-header border-0 pt-4 px-4 bg-light">
-                <h5 class="fw-bold mb-0 text-dark"><i class="fas fa-plus-circle me-2 text-primary"></i>Tambah Jadwal</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    <div class="modal-dialog modal-dialog-centered modal-sm"> <div class="modal-content border-0 shadow rounded-3">
+            <div class="modal-header py-2 px-3 bg-light">
+                <h6 class="fw-bold mb-0">Tambah Jadwal</h6>
+                <button type="button" class="btn-close small" data-bs-dismiss="modal" style="transform: scale(0.7);"></button>
             </div>
             <form action="{{ route('admin.jadwal.store') }}" method="POST">
                 @csrf
-                <div class="modal-body p-4 pt-3">
-                    <div class="row g-3">
+                <div class="modal-body p-3">
+                    <div class="row g-2">
                         <div class="col-12">
-                            <label class="form-label small fw-bold text-dark">Mata Kuliah</label>
-                            <input type="text" name="mata_kuliah" class="form-control-minimal" placeholder="Contoh: Desain Antarmuka" required>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-bold text-dark">Dosen</label>
-                            <input type="text" name="dosen_pengajar" class="form-control-minimal" placeholder="Nama Lengkap Dosen" required>
+                            <label class="x-small fw-bold">Mata Kuliah</label>
+                            <input type="text" name="mata_kuliah" class="form-control-sm border-light-dark" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-dark">Hari</label>
-                            <select name="hari" class="form-select-minimal" required>
-                                <option value="" selected disabled>Pilih</option>
+                            <label class="x-small fw-bold">Hari</label>
+                            <select name="hari" class="form-select form-select-sm" required>
                                 @foreach($daftar_hari as $h) <option value="{{ $h }}">{{ $h }}</option> @endforeach
                             </select>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-dark">Kelas</label>
-                            <select name="kelas" class="form-select-minimal" required>
-                                <option value="" selected disabled>Pilih</option>
-                                <option value="MI 3A">MI 3A</option>
-                                <option value="MI 3B">MI 3B</option>
-                                <option value="MI 3B">MI 3C</option>
-                            </select>
+                            <label class="x-small fw-bold">Kelas</label>
+                            <input type="text" name="kelas" value="{{ $kelasAktif }}" class="form-control form-control-sm bg-light" readonly>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-dark">Jam Mulai</label>
-                            <input type="time" name="jam_mulai" class="form-control-minimal" step="60" required>
+                            <label class="x-small fw-bold">Mulai</label>
+                            <input type="time" name="jam_mulai" class="form-control form-control-sm" required>
                         </div>
                         <div class="col-6">
-                            <label class="form-label small fw-bold text-dark">Jam Selesai</label>
-                            <input type="time" name="jam_selesai" class="form-control-minimal" step="60" required>
+                            <label class="x-small fw-bold">Selesai</label>
+                            <input type="time" name="jam_selesai" class="form-control form-control-sm" required>
                         </div>
                         <div class="col-12">
-                            <label class="form-label small fw-bold text-dark">Ruangan</label>
-                            <input type="text" name="ruangan" class="form-control-minimal" placeholder="Contoh: Lab 02" required>
+                            <label class="x-small fw-bold">Ruangan</label>
+                            <input type="text" name="ruangan" class="form-control form-control-sm" required>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer border-0 pb-4 px-4 bg-light">
-                    <button type="button" class="btn btn-light rounded-pill px-4 fw-bold x-small text-muted" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold x-small text-white">Simpan</button>
+                <div class="modal-footer py-2 border-0">
+                    <button type="submit" class="btn btn-primary btn-sm w-100 rounded-pill">Simpan Jadwal</button>
                 </div>
             </form>
         </div>
@@ -168,75 +143,38 @@
 @endif
 
 <style>
-    /* Global Helpers */
     .fw-800 { font-weight: 800; }
-    .x-small { font-size: 0.75rem; }
-    .border-top-faint { border-top: 1px solid #f1f5f9; }
+    .x-small { font-size: 0.7rem; }
+    .transition-all { transition: all 0.2s ease-in-out; }
 
-    /* Header Styles */
-    .badge-outline {
-        border: 1px solid #e2e8f0;
-        background: white;
-        color: #1e293b;
-        padding: 2px 8px;
-        border-radius: 6px;
-        font-weight: 700;
-        font-size: 0.7rem;
+    /* Compact Buttons & Badges */
+    .btn-primary-compact {
+        background: #2563eb; color: white; border: none; font-size: 0.75rem; font-weight: 600; padding: 6px 15px;
     }
-    .btn-primary-clean {
-        background: #2563eb;
-        color: white;
-        border: none;
-        font-weight: 700;
-        font-size: 0.85rem;
-        transition: 0.2s;
+    .btn-tab {
+        padding: 5px 15px; border-radius: 50px; text-decoration: none; color: #64748b; font-size: 0.75rem; font-weight: 700; transition: 0.2s;
     }
-    .btn-primary-clean:hover { background: #1e40af; }
+    .btn-tab.active { background: #2563eb; color: white; box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2); }
+    .btn-tab:not(.active):hover { background: #fff; color: #2563eb; }
 
-    /* Card Day Styles */
-    .day-card {
-        background: #ffffff;
-        border: 1px solid #f1f5f9 !important;
-    }
-    .count-badge {
-        font-size: 0.7rem;
-        font-weight: 700;
-        background: #f1f5f9;
-        color: #64748b;
-        padding: 3px 10px;
-        border-radius: 20px;
-    }
+    /* Card & List Item */
+    .day-card { background: #fff; border: 1px solid rgba(0,0,0,0.03) !important; }
+    .count-badge-mini { font-size: 0.6rem; background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 10px; font-weight: 700; }
 
-    /* Session Item Styles */
-    .session-item {
-        border: 1px solid #f8fafc;
-    }
-    .session-item:hover {
-        background: #f8fafc;
-        border-color: #e2e8f0;
-    }
+    .session-item { background: #fcfdfe; border: 1px solid #f1f5f9; }
+    .session-item:hover { background: #fff; border-color: #2563eb; transform: translateY(-2px); box-shadow: 0 5px 10px rgba(0,0,0,0.05); }
     .session-item:hover .action-btns { opacity: 1; }
 
-    .time-box {
-        background: #f1f5f9;
-        width: 60px;
-        border: 1px solid #e2e8f0;
-    }
+    .time-tag { background: #2563eb; color: white; font-size: 0.65rem; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+    .badge-class { font-size: 0.6rem; font-weight: 800; color: #94a3b8; background: #f8fafc; padding: 1px 6px; border-radius: 4px; border: 1px solid #e2e8f0; }
 
-    /* Modal Styling */
-    .modal-content { border: none; }
-    .form-control-minimal, .form-select-minimal {
-        background: #ffffff;
-        border: 1px solid #e2e8f0;
-        padding: 9px 15px;
-        font-size: 0.9rem;
-        border-radius: 10px;
-        width: 100%;
+    .btn-delete-mini {
+        background: #fff; border: 1px solid #fee2e2; color: #ef4444; font-size: 0.6rem; width: 18px; height: 18px;
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
     }
-    .form-control-minimal:focus, .form-select-minimal:focus {
-        border-color: #2563eb;
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    }
+    .btn-delete-mini:hover { background: #ef4444; color: #fff; }
+
+    .border-faint { border-color: #f1f5f9 !important; }
+    .form-control-sm, .form-select-sm { font-size: 0.75rem; border-radius: 6px; }
 </style>
 @endsection

@@ -9,22 +9,19 @@ use Illuminate\Support\Facades\Auth;
 
 class JadwalController extends Controller
 {
-    public function index()
-    {
-        $user = Auth::user();
+   public function index(Request $request)
+{
+    // Mengambil parameter kelas dari URL, default ke 'MI 3A' jika tidak ada
+    $kelasAktif = $request->query('kelas', 'MI 3A');
 
-        if ($user->role == 'mahasiswa') {
-            $kelasUser = trim($user->kelas);
-            $jadwals = Jadwal::where('kelas', 'LIKE', '%' . $kelasUser . '%')
-                        ->orderBy('jam_mulai', 'asc')
-                        ->get()
-                        ->groupBy('hari');
-        } else {
-            $jadwals = Jadwal::orderBy('jam_mulai', 'asc')->get()->groupBy('hari');
-        }
+    // Mengambil jadwal hanya untuk kelas yang dipilih, dikelompokkan berdasarkan hari
+    $jadwals = Jadwal::where('kelas', $kelasAktif)
+        ->orderBy('jam_mulai', 'asc')
+        ->get()
+        ->groupBy('hari');
 
-        return view('jadwal.index', compact('jadwals'));
-    }
+    return view('jadwal.index', compact('jadwals', 'kelasAktif'));
+}
 
     public function store(Request $request)
     {

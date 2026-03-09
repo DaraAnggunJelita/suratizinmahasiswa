@@ -128,7 +128,7 @@ class DashboardDosenController extends Controller
     public function editAbsen($id)
     {
         $absen = Absensi::findOrFail($id);
-        return view('dosen.absensi_edit', compact('absen'));
+        return view('dosen.edit_absen', compact('absen'));
     }
 
     public function updateAbsen(Request $request, $id)

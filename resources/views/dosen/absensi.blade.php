@@ -3,80 +3,92 @@
 @section('title', 'Rekap Absensi ' . $kelas)
 
 @section('content')
-<div class="container-fluid py-4">
-    <div class="row mb-4 align-items-center">
-        <div class="col">
-            <h2 class="fw-bold text-dark">Rekap Absensi {{ $kelas }}</h2>
-            <p class="text-muted">Laporan riwayat kehadiran mahasiswa kelas <span class="badge bg-primary text-uppercase">{{ $kelas }}</span></p>
+<div class="container animate__animated animate__fadeIn">
+    {{-- ALERT NOTIFIKASI --}}
+    @if(session('success'))
+    <div class="alert alert-minimal mb-3 d-flex align-items-center py-2 px-3 shadow-sm" role="alert">
+        <i class="fas fa-check-circle me-2 text-success"></i>
+        <div class="small fw-bold text-success">{{ session('success') }}</div>
+        <button type="button" class="btn-close ms-auto small" data-bs-dismiss="alert" style="font-size: 0.5rem;"></button>
+    </div>
+    @endif
+
+    {{-- HEADER --}}
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="fw-800 text-dark mb-0" style="letter-spacing: -0.5px;">Rekap Absensi</h4>
+            <p class="text-muted x-small mb-0">Kelas: <span class="badge-class-sm">{{ $kelas }}</span></p>
         </div>
         <div class="col-auto">
-            <a href="{{ route('dosen.createAbsen', $kelas) }}" class="btn btn-navy-dark rounded-pill px-4 py-2 shadow-sm">
-                <i class="fas fa-plus-circle me-2"></i> Tambah Absensi
+            <a href="{{ route('dosen.createAbsen', $kelas) }}" class="btn btn-primary-compact rounded-pill px-3 shadow-sm">
+                <i class="fas fa-plus-circle me-1 small"></i> Tambah Absen
             </a>
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success border-0 shadow-sm rounded-3 mb-4">
-            <i class="fas fa-check-circle me-2"></i> {{ session('success') }}
-        </div>
-    @endif
-
-    <div class="card border-0 shadow-sm rounded-4">
+    {{-- TABEL REKAP --}}
+    <div class="card border-0 shadow-sm rounded-3 overflow-hidden">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table align-middle mb-0 table-hover">
+                <table class="table table-sm align-middle mb-0 table-hover">
                     <thead class="bg-light">
                         <tr>
-                            <th class="ps-4 py-3 text-muted fw-bold small" style="width: 80px;">NO</th>
-                            <th class="text-muted fw-bold small">NAMA MAHASISWA</th>
-                            <th class="text-muted fw-bold small">NIM</th>
-                            <th class="text-muted fw-bold small">STATUS</th>
-                            <th class="text-muted fw-bold small">TANGGAL</th>
-                            <th class="text-muted fw-bold small text-center" style="width: 180px;">AKSI</th>
+                            <th class="ps-3 py-2 text-muted fw-bold x-small" style="width: 50px;">NO</th>
+                            <th class="text-muted fw-bold x-small">MAHASISWA</th>
+                            <th class="text-muted fw-bold x-small">NIM</th>
+                            <th class="text-muted fw-bold x-small">STATUS</th>
+                            <th class="text-muted fw-bold x-small">TANGGAL</th>
+                            <th class="text-muted fw-bold x-small text-center" style="width: 140px;">AKSI</th>
                         </tr>
                     </thead>
                     <tbody>
                         @forelse($absensi as $index => $row)
-                        <tr>
-                            <td class="ps-4 fw-medium">{{ $index + 1 }}</td>
-                            <td><span class="fw-bold text-dark">{{ $row->nama_mahasiswa }}</span></td>
-                            <td class="text-muted">{{ $row->nim_mahasiswa }}</td>
+                        <tr class="transition-all">
+                            <td class="ps-3 x-small fw-medium text-muted">{{ $index + 1 }}</td>
+                            <td>
+                                <div class="fw-bold text-dark" style="font-size: 0.8rem;">{{ $row->nama_mahasiswa }}</div>
+                            </td>
+                            <td class="x-small text-muted">{{ $row->nim_mahasiswa }}</td>
                             <td>
                                 @php
-                                    $badgeColor = [
-                                        'Hadir' => 'border-success text-success',
-                                        'Izin' => 'border-warning text-warning',
-                                        'Sakit' => 'border-info text-info',
-                                        'Alfa' => 'border-danger text-danger'
-                                    ][$row->status] ?? 'border-secondary text-secondary';
+                                    $statusStyle = [
+                                        'Hadir' => 'bg-success-light text-success',
+                                        'Izin'  => 'bg-warning-light text-warning',
+                                        'Sakit' => 'bg-info-light text-info',
+                                        'Alfa'  => 'bg-danger-light text-danger'
+                                    ][$row->status] ?? 'bg-light text-secondary';
                                 @endphp
-                                <span class="badge border {{ $badgeColor }} px-3 py-2 rounded-pill fw-bold text-uppercase" style="font-size: 0.7rem;">
+                                <span class="badge-status {{ $statusStyle }}">
                                     {{ $row->status }}
                                 </span>
                             </td>
                             <td>
-                                <div class="d-flex align-items-center text-muted">
-                                    <i class="far fa-calendar-alt me-2"></i>
-                                    {{ \Carbon\Carbon::parse($row->tanggal)->format('d M Y') }}
+                                <div class="d-flex align-items-center x-small text-muted">
+                                    <i class="far fa-calendar-alt me-1 opacity-50"></i>
+                                    {{ \Carbon\Carbon::parse($row->tanggal)->format('d/m/y') }}
                                 </div>
                             </td>
                             <td class="text-center">
-                                <a href="{{ route('dosen.editAbsen', $row->id) }}" class="btn btn-sm btn-outline-warning border-2 rounded-3 me-1">
-                                    <i class="fas fa-edit me-1"></i> Edit
-                                </a>
-                                <form action="{{ route('dosen.destroyAbsen', $row->id) }}" method="POST" class="d-inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" class="btn btn-sm btn-outline-danger border-2 rounded-3" onclick="return confirm('Hapus data ini?')">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </form>
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a href="{{ route('dosen.editAbsen', $row->id) }}" class="btn-action-edit" title="Edit">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </a>
+                                    <form action="{{ route('dosen.destroyAbsen', $row->id) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn-action-delete" onclick="return confirm('Hapus data?')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
                             </td>
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">Belum ada data absensi untuk kelas ini.</td>
+                            <td colspan="6" class="text-center py-4">
+                                <i class="fas fa-inbox mb-2 text-muted opacity-25 d-block" style="font-size: 1.5rem;"></i>
+                                <p class="x-small text-muted mb-0">Belum ada data absensi.</p>
+                            </td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -87,23 +99,49 @@
 </div>
 
 <style>
-    .btn-navy-dark {
-        background-color: #0d1b2a;
-        color: white;
-        transition: 0.3s;
+    /* Global Helpers */
+    .fw-800 { font-weight: 800; }
+    .x-small { font-size: 0.7rem; }
+    .transition-all { transition: all 0.2s ease; }
+
+    /* Buttons */
+    .btn-primary-compact {
+        background: #0d1b2a; color: white; border: none; font-size: 0.75rem; font-weight: 600; padding: 6px 15px; transition: 0.2s;
     }
-    .btn-navy-dark:hover {
-        background-color: #1b263b;
-        color: #ffffff;
-        transform: translateY(-1px);
+    .btn-primary-compact:hover { background: #1b263b; transform: translateY(-1px); color: white; }
+
+    /* Badges */
+    .badge-class-sm {
+        background: #eff6ff; color: #2563eb; padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: 0.65rem; text-transform: uppercase;
     }
+
+    .badge-status {
+        font-size: 0.6rem; font-weight: 800; padding: 3px 10px; border-radius: 50px; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+
+    /* Soft Colors for Status */
+    .bg-success-light { background: #dcfce7; }
+    .bg-warning-light { background: #fef9c3; }
+    .bg-info-light { background: #e0f2fe; }
+    .bg-danger-light { background: #fee2e2; }
+
+    /* Action Buttons (Mini) */
+    .btn-action-edit, .btn-action-delete {
+        width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; border-radius: 6px; font-size: 0.65rem; border: none; transition: 0.2s; text-decoration: none;
+    }
+    .btn-action-edit { background: #fef9c3; color: #a16207; }
+    .btn-action-edit:hover { background: #fde047; }
+    .btn-action-delete { background: #fee2e2; color: #b91c1c; }
+    .btn-action-delete:hover { background: #fecaca; }
+
+    /* Table Styles */
     .table thead th {
-        letter-spacing: 0.5px;
-        border-bottom: 1px solid #f0f2f5;
+        background: #f8fafc; border-bottom: 1px solid #f1f5f9; letter-spacing: 0.5px;
     }
-    .badge.border {
-        background-color: transparent !important;
-        border-width: 1.5px !important;
+    .table tbody tr:hover { background: #fcfdfe; }
+
+    .alert-minimal {
+        background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px;
     }
 </style>
 @endsection
