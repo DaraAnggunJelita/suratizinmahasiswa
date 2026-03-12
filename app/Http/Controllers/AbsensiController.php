@@ -9,14 +9,15 @@ use App\Models\Mahasiswa;
 class AbsensiController extends Controller
 {
     // Tampilkan daftar absensi per kelas
-    public function index($kelas)
-    {
-        $absensi = Absensi::where('kelas', $kelas)
-            ->orderBy('tanggal', 'desc')
-            ->get();
+   public function index($kelas)
+{
+    // Mengambil data dari yang terlama ke terbaru agar urutan pertemuan sesuai
+    $absensi = Absensi::where('kelas', $kelas)
+        ->orderBy('tanggal', 'asc')
+        ->get();
 
-        return view('dosen.absensi', compact('absensi', 'kelas'));
-    }
+    return view('dosen.absensi', compact('absensi', 'kelas'));
+}
 
     // Form tambah absensi
     public function create($kelas)
@@ -78,5 +79,25 @@ class AbsensiController extends Controller
         $absensi->delete();
 
         return redirect()->back()->with('success', 'Absensi berhasil dihapus!');
+    }
+    // Tambahkan fungsi ini di dalam class AbsensiController
+
+    public function rekapMingguan($kelas)
+    {
+        // Mengambil semua mahasiswa di kelas tersebut
+        // Kita asumsikan relasi atau data diambil dari model Mahasiswa sesuai function create
+        $mahasiswa = Mahasiswa::where('kelas', $kelas)->orderBy('nama', 'asc')->get();
+
+        // Mengambil daftar tanggal unik (pertemuan) yang sudah ada di database untuk kelas ini
+        $daftarPertemuan = Absensi::where('kelas', $kelas)
+            ->select('tanggal')
+            ->distinct()
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        // Mengambil semua data absensi untuk kelas ini agar bisa difilter di Blade
+        $absensiRaw = Absensi::where('kelas', $kelas)->get();
+
+        return view('dosen.rekap_mingguan', compact('mahasiswa', 'daftarPertemuan', 'absensiRaw', 'kelas'));
     }
 }

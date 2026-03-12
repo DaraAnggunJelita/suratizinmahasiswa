@@ -110,6 +110,7 @@ Route::prefix('dosen')->middleware(['auth', RoleMiddleware::class . ':dosen'])->
     Route::get('/absensi/edit/{id}', [DashboardDosenController::class, 'editAbsen'])->name('dosen.editAbsen');
     Route::put('/absensi/update/{id}', [DashboardDosenController::class, 'updateAbsen'])->name('dosen.updateAbsen');
     Route::delete('/absensi/delete/{id}', [DashboardDosenController::class, 'destroyAbsen'])->name('dosen.destroyAbsen');
+    Route::get('/dosen/absensi/{kelas}/rekap-mingguan', [AbsensiController::class, 'rekapMingguan'])->name('dosen.rekap_mingguan');
 
     // Shortcut
     Route::get('/absen', function () {

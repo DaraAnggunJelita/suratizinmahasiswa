@@ -72,17 +72,17 @@ class DashboardDosenController extends Controller
     }
 
     // --- FITUR REKAP ABSENSI PER KELAS ---
-    public function absensiByKelas(Request $request, $kelas)
-    {
-        $query = Absensi::where('kelas', $kelas);
+    // DashboardDosenController.php
 
-        if ($request->has('tanggal') && $request->tanggal != '') {
-            $query->whereDate('tanggal', $request->tanggal);
-        }
+public function absensiByKelas($kelas)
+{
+    // Gunakan 'asc' agar tanggal paling awal (Pertemuan 1) berada di atas
+    $absensi = Absensi::where('kelas', $kelas)
+        ->orderBy('tanggal', 'asc')
+        ->get();
 
-        $absensi = $query->orderBy('tanggal', 'desc')->get();
-        return view('dosen.absensi', compact('absensi', 'kelas'));
-    }
+    return view('dosen.absensi', compact('absensi', 'kelas'));
+}
 
     // --- FITUR INPUT ABSENSI BARU ---
     public function createAbsen($kelas)
