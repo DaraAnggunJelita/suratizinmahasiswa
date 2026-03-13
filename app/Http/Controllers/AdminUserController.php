@@ -82,16 +82,25 @@ class AdminUserController extends Controller
         return view('admin.users.show', compact('user'));
     }
 
-    public function listKelas()
+    public function listKelas(Request $request)
 {
-    // Mengambil daftar kelas unik dari tabel users yang rolenya mahasiswa
-    $daftar_kelas = User::where('role', 'mahasiswa')
-                        ->whereNotNull('kelas')
-                        ->distinct()
-                        ->orderBy('kelas', 'asc') // Tambahkan ini agar MI 3A di atas
-                        ->pluck('kelas');
+    // 1. Ambil data semua prodi untuk dropdown filter
+    $prodis = \App\Models\Prodi::all();
 
-    return view('admin.absensi.index', compact('daftar_kelas'));
+    // 2. Tentukan prodi yang sedang aktif (default ke Manajemen Informatika jika tidak ada)
+    $prodiAktif = $request->get('prodi', 'Manajemen Informatika');
+
+    // 3. Ambil daftar kelas yang difilter berdasarkan prodi (diambil dari tabel users)
+    // Asumsi: Anda menyimpan relasi prodi di tabel users atau memfilter berdasarkan string
+    $daftar_kelas = \App\Models\User::where('role', 'mahasiswa')
+        ->where('prodi', $prodiAktif) // Pastikan kolom 'prodi' ada di tabel users
+        ->whereNotNull('kelas')
+        ->distinct()
+        ->orderBy('kelas', 'asc')
+        ->pluck('kelas');
+
+    // 4. Kirim variabel ke view
+    return view('admin.absensi.index', compact('daftar_kelas', 'prodiAktif', 'prodis'));
 }
 
 public function rekapAbsen($kelas)

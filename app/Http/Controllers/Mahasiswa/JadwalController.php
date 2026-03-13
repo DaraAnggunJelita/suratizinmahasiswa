@@ -11,16 +11,21 @@ class JadwalController extends Controller
 {
    public function index(Request $request)
 {
-    // Mengambil parameter kelas dari URL, default ke 'MI 3A' jika tidak ada
-    $kelasAktif = $request->query('kelas', 'MI 3A');
+    $prodiAktif = $request->get('prodi', 'Manajemen Informatika');
 
-    // Mengambil jadwal hanya untuk kelas yang dipilih, dikelompokkan berdasarkan hari
-    $jadwals = Jadwal::where('kelas', $kelasAktif)
-        ->orderBy('jam_mulai', 'asc')
-        ->get()
-        ->groupBy('hari');
+    // Logika penentuan default kelas jika ganti prodi
+    $alias = str_contains(strtolower($prodiAktif), 'manajemen') ? 'MI' : 'TRPL';
+    $kelasAktif = $request->get('kelas', $alias . ' 3A');
 
-    return view('jadwal.index', compact('jadwals', 'kelasAktif'));
+    $prodis = \App\Models\Prodi::all();
+
+    $jadwals = \App\Models\Jadwal::where('prodi', $prodiAktif)
+                ->where('kelas', $kelasAktif)
+                ->orderBy('jam_mulai', 'asc')
+                ->get()
+                ->groupBy('hari');
+
+    return view('jadwal.index', compact('jadwals', 'kelasAktif', 'prodiAktif', 'prodis'));
 }
 
     public function store(Request $request)

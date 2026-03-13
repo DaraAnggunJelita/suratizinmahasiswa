@@ -5,74 +5,85 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Absensi;
 use App\Models\Mahasiswa;
+// Library tambahan untuk fitur ekspor
+use Barryvdh\DomPDF\Facade\Pdf;
+use Maatwebsite\Excel\Facades\Excel;
 
 class AbsensiController extends Controller
 {
-    // Tampilkan daftar absensi per kelas
-   public function index($kelas)
+    /**
+     * Tampilkan daftar absensi per kelas (Tampilan Dosen)
+     * Data diurutkan ASC agar Pertemuan 1 berada di atas.
+     */
+    public function index(Request $request, $kelas = null)
 {
-    // Mengambil data dari yang terlama ke terbaru agar urutan pertemuan sesuai
-    $absensi = Absensi::where('kelas', $kelas)
-        ->orderBy('tanggal', 'asc')
-        ->get();
+    $prodi = $request->query('prodi');
+    $mahasiswa = collect(); // Default kosong
 
-    return view('dosen.absensi', compact('absensi', 'kelas'));
+    // JIKA ada parameter kelas, ambil data mahasiswa untuk ditampilkan di form
+    if ($kelas && $kelas !== 'pilih') {
+        $mahasiswa = \App\Models\Mahasiswa::where('kelas', $kelas)
+                        ->where('prodi', $prodi)
+                        ->orderBy('name', 'asc')
+                        ->get();
+    }
+
+    return view('dosen.absensi', compact('kelas', 'mahasiswa'));
 }
 
-    // Form tambah absensi
+    /**
+     * Form tambah absensi
+     */
     public function create($kelas)
-    {
-        $mahasiswa = Mahasiswa::where('kelas', $kelas)->get();
-        return view('dosen.create_absen', compact('kelas', 'mahasiswa'));
-    }
-
-    // Simpan absensi
-    public function store(Request $request)
-    {
-        $request->validate([
-            'nama_mahasiswa' => 'required|array',
-            'nim_mahasiswa' => 'required|array',
-            'status' => 'required|array',
-            'kelas' => 'required|string',
-        ]);
-
-        foreach ($request->nama_mahasiswa as $index => $nama) {
-    Absensi::create([
-        'nama_mahasiswa' => $nama,
-        'nim_mahasiswa' => $request->nim_mahasiswa[$index],
-        'kelas' => $request->kelas,
-        'status' => $request->status[$index],
-        'tanggal' => now()->format('Y-m-d'),
-    ]);
-}
-
-        return redirect()->route('dosen.absensi', $request->kelas)
-                         ->with('success', 'Absensi berhasil disimpan!');
-    }
-
-    // Form edit absensi
-    public function edit($id)
 {
-    $absensi = Absensi::findOrFail($id);
-    return view('dosen.edit_absen', compact('absensi')); // kirim $absensi ke blade
+    // Ambil prodi dari URL (misal: ?prodi=Manajemen Informatika)
+    $prodi = request('prodi');
+
+    // Pastikan query mencari mahasiswa berdasarkan kelas DAN prodi agar tidak tertukar
+    $mahasiswa = \App\Models\Mahasiswa::where('kelas', $kelas)
+                ->where('prodi', $prodi)
+                ->orderBy('name', 'asc')
+                ->get();
+
+    // Kirim data ke view
+    return view('dosen.create_absen', compact('kelas', 'mahasiswa'));
 }
 
-    // Update absensi
-    public function update(Request $request, $id)
-    {
-        $request->validate([
-            'status' => 'required|in:Hadir,Izin,Sakit,Alfa',
-        ]);
+    /**
+     * Simpan absensi mahasiswa ke database
+     */
+   public function store(Request $request)
+{
+    // 1. Validasi input yang benar-benar dikirim dari form
+    $request->validate([
+        'mahasiswa_id' => 'required|array',
+        'status' => 'required|array',
+        'kelas' => 'required|string',
+    ]);
 
-        $absensi = Absensi::findOrFail($id);
-        $absensi->update([
-            'status' => $request->status,
-        ]);
+    // 2. Loop berdasarkan mahasiswa_id
+    foreach ($request->mahasiswa_id as $index => $id) {
+        // Ambil data mahasiswa asli dari DB agar datanya akurat
+        $mhs = \App\Models\Mahasiswa::find($id);
 
-        return redirect()->back()->with('success', 'Absensi berhasil diperbarui!');
+        if ($mhs) {
+            Absensi::create([
+                'nama_mahasiswa' => $mhs->name, // Mengambil nama dari model Mahasiswa
+                'nim_mahasiswa'  => $mhs->nim_nip, // Mengambil NIM dari model Mahasiswa
+                'kelas'          => $request->kelas,
+                'status'         => $request->status[$index],
+                'tanggal'        => now()->format('Y-m-d'),
+            ]);
+        }
     }
 
-    // Hapus absensi
+    return redirect()->route('dosen.absensi', ['kelas' => $request->kelas, 'prodi' => $request->prodi])
+                     ->with('success', 'Absensi berhasil disimpan!');
+}
+
+    /**
+     * Hapus data absensi
+     */
     public function destroy($id)
     {
         $absensi = Absensi::findOrFail($id);
@@ -80,24 +91,60 @@ class AbsensiController extends Controller
 
         return redirect()->back()->with('success', 'Absensi berhasil dihapus!');
     }
-    // Tambahkan fungsi ini di dalam class AbsensiController
 
+    /**
+     * Tampilan Rekap Matriks Mingguan (Horizontal)
+     */
     public function rekapMingguan($kelas)
     {
-        // Mengambil semua mahasiswa di kelas tersebut
-        // Kita asumsikan relasi atau data diambil dari model Mahasiswa sesuai function create
         $mahasiswa = Mahasiswa::where('kelas', $kelas)->orderBy('nama', 'asc')->get();
 
-        // Mengambil daftar tanggal unik (pertemuan) yang sudah ada di database untuk kelas ini
         $daftarPertemuan = Absensi::where('kelas', $kelas)
             ->select('tanggal')
             ->distinct()
             ->orderBy('tanggal', 'asc')
             ->get();
 
-        // Mengambil semua data absensi untuk kelas ini agar bisa difilter di Blade
         $absensiRaw = Absensi::where('kelas', $kelas)->get();
 
         return view('dosen.rekap_mingguan', compact('mahasiswa', 'daftarPertemuan', 'absensiRaw', 'kelas'));
+    }
+
+    /**
+     * --- FITUR ADMIN: EXPORT REKAP PER PERTEMUAN ---
+     */
+
+    /**
+     * Unduh Rekap Absensi Format PDF
+     */
+    public function exportPdf($kelas)
+    {
+        $absensi = Absensi::where('kelas', $kelas)
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        // Mengelompokkan data berdasarkan tanggal untuk tampilan pertemuan di PDF
+        $groupedAbsensi = $absensi->groupBy('tanggal');
+        $pertemuanKe = 1;
+
+        $pdf = Pdf::loadView('admin.absensi.export_pdf', compact('groupedAbsensi', 'kelas', 'pertemuanKe'));
+
+        return $pdf->setPaper('a4', 'portrait')->download("Rekap_Absensi_{$kelas}.pdf");
+    }
+
+    /**
+     * Unduh Rekap Absensi Format Excel (.xls)
+     */
+    public function exportExcel($kelas)
+    {
+        $absensi = Absensi::where('kelas', $kelas)
+            ->orderBy('tanggal', 'asc')
+            ->get();
+
+        $groupedAbsensi = $absensi->groupBy('tanggal');
+
+        return response()->view('admin.absensi.export_excel', compact('groupedAbsensi', 'kelas'))
+            ->header('Content-Type', 'application/vnd-ms-excel')
+            ->header('Content-Disposition', "attachment; filename=Rekap_Absensi_{$kelas}.xls");
     }
 }

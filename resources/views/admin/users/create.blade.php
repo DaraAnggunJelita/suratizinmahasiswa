@@ -41,7 +41,7 @@
                             <label for="name" class="form-label fw-bold text-dark small">Nama Lengkap</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-user"></i></span>
-                                <input type="text" name="name" id="name" class="form-control bg-light border-start-0 ps-0" placeholder="Contoh: Dr. Budi Santoso" required>
+                                <input type="text" name="name" id="name" class="form-control bg-light border-start-0 ps-0" placeholder="Contoh: Dr. Budi Santoso" value="{{ old('name') }}" required>
                             </div>
                         </div>
 
@@ -49,16 +49,36 @@
                             <label for="nim_nip" class="form-label fw-bold text-dark small">NIP</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-id-badge"></i></span>
-                                <input type="text" name="nim_nip" id="nim_nip" class="form-control bg-light border-start-0 ps-0" placeholder="Masukkan NIP resmi" required>
+                                <input type="text" name="nim_nip" id="nim_nip" class="form-control bg-light border-start-0 ps-0" placeholder="Masukkan NIP resmi" value="{{ old('nim_nip') }}" required>
                             </div>
                         </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label for="email" class="form-label fw-bold text-dark small">Alamat Email</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-envelope"></i></span>
-                            <input type="email" name="email" id="email" class="form-control bg-light border-start-0 ps-0" placeholder="email@kampus.ac.id" required>
+                    <div class="row">
+                        <div class="col-md-6 mb-4">
+                            <label for="email" class="form-label fw-bold text-dark small">Alamat Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-envelope"></i></span>
+                                <input type="email" name="email" id="email" class="form-control bg-light border-start-0 ps-0" placeholder="email@kampus.ac.id" value="{{ old('email') }}" required>
+                            </div>
+                        </div>
+
+                        {{-- Bagian Pilihan Prodi --}}
+                        <div class="col-md-6 mb-4">
+                            <label for="prodi" class="form-label fw-bold text-dark small">Program Studi</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-end-0 text-muted"><i class="fas fa-university"></i></span>
+                                <select name="prodi" id="prodi" class="form-select bg-light border-start-0 ps-0" required>
+                                    <option value="" selected disabled>Pilih Program Studi</option>
+                                    <option value="Manajemen Informatika" {{ old('prodi') == 'Manajemen Informatika' ? 'selected' : '' }}>Manajemen Informatika</option>
+                                    <option value="Teknik Komputer" {{ old('prodi') == 'Teknik Komputer' ? 'selected' : '' }}>Teknik Komputer</option>
+                                    <option value="Teknologi Rekaya Perangkat Lunak" {{ old('prodi') == 'Teknologi Rekaya Perangkat Lunak' ? 'selected' : '' }}>Teknologi Rekaya Perangkat Lunak</option>
+                                    <option value="Animasi" {{ old('prodi') == 'Animasi' ? 'selected' : '' }}>Animasi</option>
+
+
+                                {{-- Tambahkan opsi prodi lainnya di sini --}}
+                                </select>
+                            </div>
                         </div>
                     </div>
 
@@ -99,14 +119,14 @@
 
 <style>
     /* Styling khusus Form */
-    .form-control {
+    .form-control, .form-select {
         border-radius: 8px;
         padding: 10px 15px;
         font-size: 0.9rem;
         border-color: #e2e8f0;
     }
 
-    .form-control:focus {
+    .form-control:focus, .form-select:focus {
         box-shadow: none;
         border-color: #647ACB;
         background-color: #fff !important;
@@ -132,11 +152,6 @@
         color: #fff;
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(13, 27, 42, 0.3);
-    }
-
-    .btn-light:hover {
-        background-color: #f8fafc;
-        border-color: #cbd5e1;
     }
 </style>
 @endsection

@@ -9,6 +9,7 @@ use App\Models\Absensi;
 use App\Models\User;
 use App\Models\Pengumuman;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
 class DashboardDosenController extends Controller
@@ -28,7 +29,6 @@ class DashboardDosenController extends Controller
         $daftarKelasDiajar = Jadwal::where('dosen_pengajar', 'LIKE', "%{$userName}%")
             ->pluck('kelas')->unique()->toArray();
 
-        // Ambil semua surat izin dari mahasiswa di kelas yang diajar dosen ini
         $suratIzin = SuratIzin::with('user')
             ->whereHas('user', function ($query) use ($daftarKelasDiajar) {
                 $query->whereIn('kelas', $daftarKelasDiajar);
@@ -49,102 +49,81 @@ class DashboardDosenController extends Controller
         ));
     }
 
-    // --- FITUR SURAT IZIN ---
-    public function suratDetail($id)
+    public function absensiByKelas(Request $request, $kelas = null)
     {
-        $surat = SuratIzin::with('user')->findOrFail($id);
-        return view('dosen.surat_detail', compact('surat'));
-    }
+        $prodi = $request->query('prodi');
+        $tanggalHariIni = date('Y-m-d');
+        $mahasiswa = collect();
 
-    public function setujuiSurat($id)
-    {
-        $surat = SuratIzin::findOrFail($id);
-        $surat->update(['status' => 'disetujui']);
-        return redirect()->back()->with('success', 'Surat izin mahasiswa berhasil disetujui!');
-    }
+        if ($kelas) {
+            $absensiExisting = Absensi::where('kelas', $kelas)
+                                ->where('tanggal', $tanggalHariIni)
+                                ->get();
 
-    // FUNGSI TOLAK SURAT (DITAMBAHKAN)
-    public function tolakSurat($id)
-    {
-        $surat = SuratIzin::findOrFail($id);
-        $surat->update(['status' => 'ditolak']);
-        return redirect()->back()->with('success', 'Surat izin mahasiswa telah ditolak.');
-    }
-
-    // --- FITUR REKAP ABSENSI PER KELAS ---
-    // DashboardDosenController.php
-
-public function absensiByKelas($kelas)
-{
-    // Gunakan 'asc' agar tanggal paling awal (Pertemuan 1) berada di atas
-    $absensi = Absensi::where('kelas', $kelas)
-        ->orderBy('tanggal', 'asc')
-        ->get();
-
-    return view('dosen.absensi', compact('absensi', 'kelas'));
-}
-
-    // --- FITUR INPUT ABSENSI BARU ---
-    public function createAbsen($kelas)
-    {
-        $mahasiswa = User::where('role', 'mahasiswa')
-                    ->where('kelas', $kelas)
-                    ->orderBy('name', 'asc')
-                    ->get();
-
-        $izinHariIni = SuratIzin::where('status', 'disetujui')
-                    ->whereDate('created_at', Carbon::today())
-                    ->pluck('user_id')
-                    ->toArray();
-
-        return view('dosen.create_absen', compact('mahasiswa', 'kelas', 'izinHariIni'));
-    }
-
-    public function storeAbsen(Request $request)
-    {
-        $request->validate([
-            'nama_mahasiswa' => 'required|array',
-            'nim_mahasiswa' => 'required|array',
-            'status' => 'required|array',
-            'kelas' => 'required',
-            'tanggal' => 'required'
-        ]);
-
-        foreach ($request->nama_mahasiswa as $key => $nama) {
-            Absensi::create([
-                'nama_mahasiswa' => $nama,
-                'nim_mahasiswa'  => $request->nim_mahasiswa[$key],
-                'status'         => $request->status[$key],
-                'kelas'          => $request->kelas,
-                'tanggal'        => $request->tanggal,
-            ]);
+            if ($absensiExisting->isNotEmpty()) {
+                $mahasiswa = $absensiExisting->map(function($item) {
+                    return (object)[
+                        'nim_nip' => $item->nim_mahasiswa,
+                        'name' => $item->nama_mahasiswa,
+                        'status' => $item->status
+                    ];
+                });
+            } else {
+                $mahasiswa = User::where('role', 'mahasiswa')
+                                ->where('kelas', $kelas)
+                                ->where('prodi', $prodi)
+                                ->orderBy('name', 'asc')
+                                ->get();
+            }
         }
 
-        return redirect()->route('dosen.absensi', $request->kelas)
-                         ->with('success', 'Absensi kelas ' . $request->kelas . ' berhasil disimpan!');
+        return view('dosen.absensi', compact('kelas', 'mahasiswa', 'prodi'));
     }
 
-    // --- FITUR EDIT & HAPUS ---
-    public function editAbsen($id)
-    {
-        $absen = Absensi::findOrFail($id);
-        return view('dosen.edit_absen', compact('absen'));
+   public function storeAbsen(Request $request)
+{
+    // 1. Validasi Input
+    if (!$request->has('nim')) {
+        return redirect()->back()->with('error', 'Data mahasiswa tidak ditemukan.');
     }
 
-    public function updateAbsen(Request $request, $id)
-    {
-        $absen = Absensi::findOrFail($id);
-        $absen->update($request->all());
+    // 2. Standarisasi Tanggal (Menggunakan PHP Native)
+    // Jika $request->tanggal kosong, otomatis gunakan tanggal hari ini
+    $tanggalInput = $request->tanggal ? date('Y-m-d', strtotime($request->tanggal)) : date('Y-m-d');
 
-        return redirect()->route('dosen.absensi', ['kelas' => $absen->kelas])
-            ->with('success', 'Data absensi berhasil diperbarui!');
+    try {
+        // Gunakan Full Namespace untuk DB agar tidak perlu import di atas
+        \Illuminate\Support\Facades\DB::transaction(function () use ($request, $tanggalInput) {
+            foreach ($request->nim as $key => $nim) {
+                // updateOrCreate: Jika NIM & Tanggal SAMA -> Update. Jika BEDA -> Buat Baru.
+                \App\Models\Absensi::updateOrCreate(
+                    [
+                        'nim_mahasiswa' => $nim,
+                        'tanggal'       => $tanggalInput,
+                    ],
+                    [
+                        'nama_mahasiswa' => $request->nama[$key],
+                        'kelas'          => $request->kelas,
+                        'status'         => $request->status[$key] ?? 'Hadir',
+                    ]
+                );
+            }
+        });
+
+        // 3. Redirect ke Route (PENTING untuk mencegah data ganda saat Refresh/F5)
+        return redirect()->route('dosen.absensi', [
+            'kelas' => $request->kelas,
+            'prodi' => $request->prodi
+        ])->with('success', 'Presensi berhasil diperbarui!');
+
+    } catch (\Exception $e) {
+        return redirect()->back()->with('error', 'Gagal menyimpan: ' . $e->getMessage());
     }
+}
 
-    public function hapusAbsen($id)
-    {
-        $absen = Absensi::findOrFail($id);
-        $absen->delete();
-
-        return redirect()->back()->with('success', 'Data absensi telah dihapus.');
-    }
+    // Fungsi lain tetap dipertahankan sesuai aslinya
+    public function suratDetail($id) { $surat = SuratIzin::with('user')->findOrFail($id); return view('dosen.surat_detail', compact('surat')); }
+    public function setujuiSurat($id) { SuratIzin::findOrFail($id)->update(['status' => 'disetujui']); return redirect()->back()->with('success', 'Disetujui!'); }
+    public function tolakSurat($id) { SuratIzin::findOrFail($id)->update(['status' => 'ditolak']); return redirect()->back()->with('success', 'Ditolak!'); }
+    public function hapusAbsen($id) { Absensi::findOrFail($id)->delete(); return redirect()->back()->with('success', 'Dihapus.'); }
 }

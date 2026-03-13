@@ -4,15 +4,28 @@ namespace App\Http\Controllers;
 
 use App\Models\Pengumuman;
 use Illuminate\Http\Request;
+use App\Models\Prodi;
 use Illuminate\Support\Facades\Auth;
 
 class PengumumanController extends Controller
 {
     // Tampilkan Daftar Pengumuman (Gambar 1 yang Anda kirim)
-    public function index()
+    public function index(Request $request)
     {
-        $pengumumans = Pengumuman::with(relations: 'user')->latest()->get();
-        return view('pengumuman.index', compact('pengumumans'));
+        // 1. Ambil semua data prodi untuk dropdown filter dan modal
+        $prodis = Prodi::all();
+
+        // 2. Logika pencarian/filter (opsional)
+        $query = Pengumuman::with('user')->orderBy('created_at', 'desc');
+
+        if ($request->has('prodi') && $request->prodi != '') {
+            $query->where('prodi', $request->prodi);
+        }
+
+        $pengumumans = $query->get();
+
+        // 3. Kirim kedua variabel ke view
+        return view('pengumuman.index', compact('pengumumans', 'prodis'));
     }
 
     // Simpan Pengumuman baru

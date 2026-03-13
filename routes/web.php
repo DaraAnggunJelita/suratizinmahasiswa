@@ -1,16 +1,18 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AbsensiController;
+use App\Http\Controllers\Admin\JurusanController;
+use App\Http\Controllers\Admin\ProdiController;
 use App\Http\Controllers\Admin\SuratIzinController as AdminSurat;
 use App\Http\Controllers\AdminUserController;
-use App\Http\Controllers\Mahasiswa\SuratIzinController as MahasiswaSurat;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardDosenController;
-use App\Http\Controllers\AbsensiController;
-use App\Http\Middleware\RoleMiddleware;
 use App\Http\Controllers\Mahasiswa\JadwalController;
+use App\Http\Controllers\Mahasiswa\SuratIzinController as MahasiswaSurat;
 use App\Http\Controllers\PengumumanController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Middleware\RoleMiddleware;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
@@ -65,10 +67,17 @@ Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin,dose
 |--------------------------------------------------------------------------
 */
 Route::prefix('admin')->middleware(['auth', RoleMiddleware::class . ':admin'])->name('admin.')->group(function () {
-
-// Rute Baru: Admin Absensi
+// Di dalam group middleware admin
+    Route::get('/prodi', [ProdiController::class, 'index'])->name('prodi.index');// Rute Baru: Admin Absensi
+    Route::post('/prodi/store', [ProdiController::class, 'store'])->name('prodi.store');
+    Route::put('/prodi/{id}', [ProdiController::class, 'update'])->name('prodi.update');
+    Route::delete('/prodi/{id}', [ProdiController::class, 'destroy'])->name('prodi.destroy');
     Route::get('/absensi', [AdminUserController::class, 'listKelas'])->name('absensi.index');
     Route::get('/absensi/rekap/{kelas}', [AdminUserController::class, 'rekapAbsen'])->name('absensi.rekap');
+
+    // --- TAMBAHKAN 2 BARIS INI UNTUK DOWNLOAD ---
+Route::get('/absensi/export-pdf/{kelas}', [AbsensiController::class, 'exportPdf'])->name('absensi.pdf');
+Route::get('/absensi/export-excel/{kelas}', [AbsensiController::class, 'exportExcel'])->name('absensi.excel');
 
     Route::get('/dashboard', [AdminSurat::class, 'index'])->name('dashboard');
 
@@ -104,13 +113,19 @@ Route::prefix('dosen')->middleware(['auth', RoleMiddleware::class . ':dosen'])->
     Route::post('/surat/{id}/tolak', [DashboardDosenController::class, 'tolakSurat'])->name('dosen.tolakSurat');
 
     // Absensi Management
-    Route::get('/absensi/rekap/{kelas}', [DashboardDosenController::class, 'absensiByKelas'])->name('dosen.absensi');
+    Route::get('/absensi', [App\Http\Controllers\DashboardDosenController::class, 'index'])->name('absensi.index');
+    Route::get('/absensi/rekap/{kelas?}', [DashboardDosenController::class, 'absensiByKelas'])->name('dosen.absensi');
     Route::get('/absensi/create/{kelas}', [DashboardDosenController::class, 'createAbsen'])->name('dosen.createAbsen');
     Route::post('/absensi/store', [DashboardDosenController::class, 'storeAbsen'])->name('dosen.storeAbsen');
     Route::get('/absensi/edit/{id}', [DashboardDosenController::class, 'editAbsen'])->name('dosen.editAbsen');
     Route::put('/absensi/update/{id}', [DashboardDosenController::class, 'updateAbsen'])->name('dosen.updateAbsen');
     Route::delete('/absensi/delete/{id}', [DashboardDosenController::class, 'destroyAbsen'])->name('dosen.destroyAbsen');
     Route::get('/dosen/absensi/{kelas}/rekap-mingguan', [AbsensiController::class, 'rekapMingguan'])->name('dosen.rekap_mingguan');
+    // Route untuk menampilkan halaman (GET)
+Route::get('/dosen/absensi/create/{kelas}', [AbsensiController::class, 'create'])->name('dosen.createAbsen');
+
+// Route untuk simpan data (POST) - yang tadi kita perbaiki
+Route::post('/dosen/absensi/store', [AbsensiController::class, 'store'])->name('dosen.storeAbsen');
 
     // Shortcut
     Route::get('/absen', function () {

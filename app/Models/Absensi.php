@@ -13,9 +13,11 @@ class Absensi extends Model
         'nama_mahasiswa',
         'nim_mahasiswa',
         'kelas',
+        'prodi',
         'status',
         'tanggal',
         'absensi'
+
     ];
 
     // TAMBAHKAN INI: Menghubungkan Absensi ke User berdasarkan NIM

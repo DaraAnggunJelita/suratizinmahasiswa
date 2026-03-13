@@ -23,7 +23,6 @@
             margin: 0;
         }
 
-        /* SIDEBAR OPTIMIZATION */
         .sidebar {
             position: fixed;
             top: 0; left: 0;
@@ -53,9 +52,6 @@
             padding-right: 5px;
         }
 
-        .sidebar-nav-container::-webkit-scrollbar { width: 4px; }
-        .sidebar-nav-container::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
-
         .nav-label {
             font-size: 0.65rem;
             text-transform: uppercase;
@@ -81,6 +77,11 @@
 
         .sidebar nav a:hover { background: rgba(255, 255, 255, 0.05); color: #ffffff; }
         .sidebar nav a.active { background: rgba(37, 99, 235, 0.15); color: #ffffff; border-left: 3px solid var(--primary); }
+
+        .nav-prodi {
+            font-size: 0.8rem !important;
+            padding-left: 20px !important;
+        }
 
         .topbar {
             margin-left: 280px;
@@ -126,14 +127,12 @@
                         <i class="fas fa-th-large"></i> Dashboard Admin
                     </a>
                 @else
-                    {{-- Dashboard Mahasiswa --}}
                     <a href="{{ route('mahasiswa.surat_izin.index') }}" class="{{ request()->is('mahasiswa/surat-izin*') ? 'active' : '' }}">
                         <i class="fas fa-th-large"></i> Dashboard Mahasiswa
                     </a>
                 @endif
 
                 <div class="nav-label">AKADEMIK</div>
-                {{-- Menu Pengumuman hanya muncul untuk Admin dan Dosen --}}
                 @if(Auth::user()->role == 'admin' || Auth::user()->role == 'dosen')
                     <a href="{{ route('admin.pengumuman.index') }}" class="{{ request()->is('admin/pengumuman*') ? 'active' : '' }}">
                         <i class="fas fa-bullhorn"></i> Pengumuman
@@ -144,33 +143,31 @@
                     <i class="fas fa-calendar-alt"></i> Jadwal Kuliah
                 </a>
 
+                {{-- MONITORING KHUSUS DOSEN --}}
                 @if(Auth::user()->role == 'dosen')
                     <div class="nav-label">MONITORING ABSENSI</div>
-                    <a href="{{ route('dosen.absensi', 'MI 3A') }}" class="{{ request()->is('*MI 3A*') ? 'active' : '' }}">
-                        <i class="fas fa-user-check"></i> Kelas MI 3A
-                    </a>
-                    <a href="{{ route('dosen.absensi', 'MI 3B') }}" class="{{ request()->is('*MI 3B*') ? 'active' : '' }}">
-                        <i class="fas fa-user-check"></i> Kelas MI 3B
-                    </a>
-                    <a href="{{ route('dosen.absensi', 'MI 3C') }}" class="{{ request()->is('*MI 3C*') ? 'active' : '' }}">
-                        <i class="fas fa-user-check"></i> Kelas MI 3C
-                    </a>
+                    @foreach(\App\Models\Prodi::all() as $prodi)
+                        {{-- Menggunakan route dosen.absensi sesuai name yang terdaftar --}}
+                    <a href="{{ route('dosen.absensi', ['prodi' => $prodi->nama]) }}"
+                               class="nav-prodi {{ request()->query('prodi') == $prodi->nama ? 'active' : '' }}">
+                            <i class="fas fa-university" style="font-size: 0.7rem;"></i> {{ strtoupper($prodi->nama) }}
+                        </a>
+                    @endforeach
                 @endif
 
                 <div class="nav-label">SISTEM</div>
-
                 @if(Auth::user()->role == 'admin')
-                    {{-- Menu Khusus Admin --}}
                     <a href="{{ route('admin.absensi.index') }}" class="{{ request()->is('admin/absensi*') ? 'active' : '' }}">
                         <i class="fas fa-clipboard-check"></i> Monitoring Absensi
                     </a>
-
+                    <a href="{{ route('admin.prodi.index') }}" class="{{ request()->is('admin/prodi*') ? 'active' : '' }}">
+                        <i class="fas fa-university"></i> Data Prodi
+                    </a>
                     <a href="{{ route('admin.users.index') }}" class="{{ request()->is('admin/users*') ? 'active' : '' }}">
                         <i class="fas fa-users-cog"></i> Manajemen User
                     </a>
                 @endif
 
-                {{-- Profil Saya muncul untuk semua role (Admin, Dosen, Mahasiswa) --}}
                 <a href="{{ route('profile.index') }}" class="{{ request()->is('profile*') ? 'active' : '' }}">
                     <i class="fas fa-user-circle"></i> Profil Saya
                 </a>
