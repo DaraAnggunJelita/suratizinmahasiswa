@@ -19,13 +19,12 @@
             font-family: 'Inter', sans-serif;
         }
 
-        /* Card Styling */
         .card {
             border-radius: 24px;
             border: none;
             box-shadow: 0 20px 40px rgba(13, 27, 42, 0.1);
             overflow: hidden;
-            background: #ffffff; /* Mengubah background card jadi putih agar input lebih terlihat profesional */
+            background: #ffffff;
             position: relative;
         }
 
@@ -53,17 +52,16 @@
             padding: 2rem 2.5rem;
         }
 
-        /* Form Controls */
         .form-label {
             font-weight: 600;
             font-size: 0.85rem;
             color: #475569;
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.4rem;
         }
 
         .form-control, .form-select {
             border-radius: 12px;
-            padding: 0.75rem 1rem;
+            padding: 0.7rem 1rem;
             border: 1px solid #e2e8f0;
             background-color: #f8fafc;
             font-size: 0.9rem;
@@ -76,7 +74,6 @@
             box-shadow: 0 0 0 4px rgba(100, 122, 203, 0.1);
         }
 
-        /* Button */
         .btn-register {
             background: linear-gradient(90deg, #0D1B2A, #1B263B);
             border: none;
@@ -95,7 +92,6 @@
             background: #415A77;
         }
 
-        /* Login Link */
         .login-link {
             font-weight: 600;
             color: #647ACB;
@@ -107,7 +103,6 @@
             text-decoration: underline;
         }
 
-        /* Decoration */
         .bg-decoration {
             position: absolute;
             top: 0;
@@ -137,7 +132,7 @@
                 </div>
 
                 <div class="card-body">
-                    {{-- Error Validation --}}
+                    {{-- Alert Error Validation --}}
                     @if ($errors->any())
                     <div class="alert alert-danger border-0 rounded-3 mb-4 shadow-sm small">
                         <ul class="mb-0 ps-3">
@@ -153,36 +148,34 @@
 
                         <div class="mb-3">
                             <label for="name" class="form-label">Nama Lengkap</label>
-                            <input type="text" id="name" name="name" class="form-control" placeholder="Nama sesuai KTM" required autofocus>
+                            <input type="text" id="name" name="name" class="form-control" placeholder="Nama sesuai KTM" required autofocus value="{{ old('name') }}">
                         </div>
 
                         <div class="mb-3">
                             <label for="email" class="form-label">Email Mahasiswa</label>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="nama@student.com" required>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="nama@student.com" required value="{{ old('email') }}">
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label for="nim_nip" class="form-label">NIM</label>
-                                <input type="text" id="nim_nip" name="nim_nip" class="form-control" placeholder="Masukkan NIM Anda" required>
-                            </div>
+                        <div class="mb-3">
+                            <label for="nim_nip" class="form-label">NIM</label>
+                            <input type="text" id="nim_nip" name="nim_nip" class="form-control" placeholder="Masukkan NIM Anda" required value="{{ old('nim_nip') }}">
                         </div>
 
                         <div class="mb-3">
                             <label for="prodi" class="form-label">Program Studi</label>
-                            <select id="prodi" name="prodi" class="form-select" required>
+                            <select id="prodi" name="prodi" class="form-select" required onchange="updateKelas()">
                                 <option value="" disabled selected>Pilih Program Studi</option>
                                 <option value="Manajemen Informatika">Manajemen Informatika</option>
+                                <option value="Teknik Komputer">Teknik Komputer</option>
+                                <option value="Teknologi Rekayasa Perangkat Lunak">Teknologi Rekayasa Perangkat Lunak</option>
+                                <option value="Animasi">Animasi</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label for="kelas" class="form-label">Kelas</label>
-                            <select id="kelas" name="kelas" class="form-select" required>
-                                <option value="" disabled selected>Pilih Kelas</option>
-                                <option value="MI 3A">MI 3A</option>
-                                <option value="MI 3B">MI 3B</option>
-                                <option value="MI 3C">MI 3C</option>
+                            <select id="kelas" name="kelas" class="form-select" required disabled>
+                                <option value="" disabled selected>Pilih Prodi Terlebih Dahulu</option>
                             </select>
                         </div>
 
@@ -212,5 +205,54 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function updateKelas() {
+        const prodiSelect = document.getElementById('prodi');
+        const kelasSelect = document.getElementById('kelas');
+        const prodi = prodiSelect.value;
+
+        // Reset dropdown kelas
+        kelasSelect.innerHTML = '<option value="" disabled selected>Pilih Kelas</option>';
+
+        let alias = "";
+        let options = [];
+
+        // Menentukan alias berdasarkan prodi yang dipilih
+        switch(prodi) {
+            case "Manajemen Informatika": alias = "MI"; break;
+            case "Teknik Komputer": alias = "TK"; break;
+            case "Teknologi Rekayasa Perangkat Lunak": alias = "TRPL"; break;
+            case "Animasi": alias = "ANM"; break;
+            default: alias = "";
+        }
+
+        // Generate Otomatis Kelas 1A sampai 3C
+        if (alias !== "") {
+            const tingkat = ['1', '2', '3'];
+            const sub = ['A', 'B', 'C'];
+
+            tingkat.forEach(t => {
+                sub.forEach(s => {
+                    options.push(`${alias} ${t}${s}`);
+                });
+            });
+
+            // Aktifkan dropdown
+            kelasSelect.disabled = false;
+
+            // Tambahkan hasil generate ke dalam select
+            options.forEach(function(item) {
+                let option = document.createElement('option');
+                option.value = item;
+                option.text = item;
+                kelasSelect.add(option);
+            });
+        } else {
+            kelasSelect.disabled = true;
+        }
+    }
+</script>
+
 </body>
 </html>
